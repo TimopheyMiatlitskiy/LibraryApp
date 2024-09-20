@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+
 namespace LibraryApp
 {
     public class Program
@@ -5,6 +7,10 @@ namespace LibraryApp
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            // Регистрация DbContext
+            builder.Services.AddDbContext<LibraryContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("LibraryConnection")));
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
