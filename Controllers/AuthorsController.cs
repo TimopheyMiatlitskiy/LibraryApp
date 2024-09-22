@@ -5,43 +5,42 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LibraryApp.Controllers
 {
-    public class BooksController : Controller
+    public class AuthorsController : Controller
     {
         private readonly LibraryContext _context;
 
-        public BooksController(LibraryContext context)
+        public AuthorsController(LibraryContext context)
         {
             _context = context;
         }
 
-        // Метод для отображения списка книг 
+        // Метод для отображения списка авторов 
         public async Task<IActionResult> Index()
         {
-            var books = await _context.Books.Include(b => b.Author).ToListAsync();
-            return View(books);
+            return View(await _context.Authors.ToListAsync());
         }
 
-        // Метод для отображения формы добавления книги 
+        // Метод для отображения формы добавления автора 
         public IActionResult Create()
         {
             return View();
         }
 
-        // Метод для добавления новой книги 
+        // Метод для добавления нового автора 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("ISBN,Title,Genre,Description,AuthorId,BorrowedAt,ReturnAt")] Book book)
+        public async Task<IActionResult> Create([Bind("FirstName,LastName,DateOfBirth,Country")] Author author)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(book);
+                _context.Add(author);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            return View(book);
+            return View(author);
         }
 
-        // Метод для редактирования книги 
+        // Метод для редактирования автора 
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -49,20 +48,20 @@ namespace LibraryApp.Controllers
                 return NotFound();
             }
 
-            var book = await _context.Books.FindAsync(id);
-            if (book == null)
+            var author = await _context.Authors.FindAsync(id);
+            if (author == null)
             {
                 return NotFound();
             }
-            return View(book);
+            return View(author);
         }
 
         // Метод для сохранения изменений после редактирования 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,ISBN,Title,Genre,Description,AuthorId,BorrowedAt,ReturnAt")] Book book)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,FirstName,LastName,DateOfBirth,Country")] Author author)
         {
-            if (id != book.Id)
+            if (id != author.Id)
             {
                 return NotFound();
             }
@@ -71,12 +70,12 @@ namespace LibraryApp.Controllers
             {
                 try
                 {
-                    _context.Update(book);
+                    _context.Update(author);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!BookExists(book.Id))
+                    if (!AuthorExists(author.Id))
                     {
                         return NotFound();
                     }
@@ -87,10 +86,10 @@ namespace LibraryApp.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(book);
+            return View(author);
         }
 
-        // Метод для удаления книги 
+        // Метод для удаления автора 
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -98,32 +97,31 @@ namespace LibraryApp.Controllers
                 return NotFound();
             }
 
-            var book = await _context.Books
-                .Include(b => b.Author)
+            var author = await _context.Authors
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (book == null)
+            if (author == null)
             {
                 return NotFound();
             }
 
-            return View(book);
+            return View(author);
         }
 
-        // Подтверждение удаления книги 
+        // Подтверждение удаления автора 
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var book = await _context.Books.FindAsync(id);
-            _context.Books.Remove(book);
+            var author = await _context.Authors.FindAsync(id);
+            _context.Authors.Remove(author);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
-        // Проверка на существование книги 
-        private bool BookExists(int id)
+        // Проверка на существование автора 
+        private bool AuthorExists(int id)
         {
-            return _context.Books.Any(e => e.Id == id);
+            return _context.Authors.Any(e => e.Id == id);
         }
     }
 }
