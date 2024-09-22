@@ -1,6 +1,7 @@
 ﻿using LibraryApp.Data;
 using LibraryApp.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
 namespace LibraryApp.Controllers
@@ -24,6 +25,7 @@ namespace LibraryApp.Controllers
         // Метод для отображения формы добавления книги 
         public IActionResult Create()
         {
+            ViewData["AuthorId"] = new SelectList(_context.Authors, "Id", "FirstName");
             return View();
         }
 
@@ -32,12 +34,17 @@ namespace LibraryApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("ISBN,Title,Genre,Description,AuthorId,BorrowedAt,ReturnAt")] Book book)
         {
+            if (book.BorrowedAt >= book.ReturnAt)
+            {
+                ModelState.AddModelError("ReturnAt", "Дата возврата должна быть позже даты взятия.");
+            }
             if (ModelState.IsValid)
             {
                 _context.Add(book);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+            ViewData["AuthorId"] = new SelectList(_context.Authors, "Id", "FirstName", book.AuthorId);
             return View(book);
         }
 
@@ -54,6 +61,7 @@ namespace LibraryApp.Controllers
             {
                 return NotFound();
             }
+            ViewData["AuthorId"] = new SelectList(_context.Authors, "Id", "FirstName", book.AuthorId);
             return View(book);
         }
 
@@ -65,6 +73,11 @@ namespace LibraryApp.Controllers
             if (id != book.Id)
             {
                 return NotFound();
+            }
+
+            if (book.BorrowedAt >= book.ReturnAt)
+            {
+                ModelState.AddModelError("ReturnAt", "Дата возврата должна быть позже даты взятия.");
             }
 
             if (ModelState.IsValid)
@@ -87,6 +100,7 @@ namespace LibraryApp.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
+            ViewData["AuthorId"] = new SelectList(_context.Authors, "Id", "FirstName", book.AuthorId);
             return View(book);
         }
 

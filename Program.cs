@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using LibraryApp.Data;
+using Microsoft.AspNetCore.Identity;
 
 namespace LibraryApp
 {
@@ -12,6 +13,10 @@ namespace LibraryApp
             // Регистрация DbContext
             builder.Services.AddDbContext<LibraryContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("LibraryConnection")));
+
+            builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+                .AddEntityFrameworkStores<LibraryContext>()
+                .AddDefaultTokenProviders();
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
@@ -32,6 +37,7 @@ namespace LibraryApp
             app.UseRouting();
 
             app.UseAuthorization();
+            app.UseAuthentication();
 
             app.MapControllerRoute(
                 name: "default",
