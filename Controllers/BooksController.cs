@@ -1,11 +1,13 @@
 ﻿using LibraryApp.Data;
 using LibraryApp.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
 namespace LibraryApp.Controllers
 {
+    [Authorize(AuthenticationSchemes = "Identity.Application", Roles = "Admin")]
     public class BooksController : Controller
     {
         private readonly LibraryContext _context;
@@ -18,11 +20,16 @@ namespace LibraryApp.Controllers
         // Метод для отображения списка книг 
         public async Task<IActionResult> Index()
         {
+            if (!User.Identity.IsAuthenticated)
+            {
+                return RedirectToAction("Login", "Account");
+            }
             var books = await _context.Books.Include(b => b.Author).ToListAsync();
             return View(books);
         }
 
         // Метод для отображения формы добавления книги 
+        //[Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             ViewData["AuthorId"] = new SelectList(_context.Authors, "Id", "FirstName");
@@ -32,6 +39,7 @@ namespace LibraryApp.Controllers
         // Метод для добавления новой книги 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        //[Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([Bind("ISBN,Title,Genre,Description,AuthorId,BorrowedAt,ReturnAt")] Book book)
         {
             if (book.BorrowedAt >= book.ReturnAt)
@@ -49,6 +57,7 @@ namespace LibraryApp.Controllers
         }
 
         // Метод для редактирования книги 
+        //[Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -68,6 +77,7 @@ namespace LibraryApp.Controllers
         // Метод для сохранения изменений после редактирования 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        //[Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int id, [Bind("Id,ISBN,Title,Genre,Description,AuthorId,BorrowedAt,ReturnAt")] Book book)
         {
             if (id != book.Id)
@@ -105,6 +115,7 @@ namespace LibraryApp.Controllers
         }
 
         // Метод для удаления книги 
+        //[Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -126,6 +137,7 @@ namespace LibraryApp.Controllers
         // Подтверждение удаления книги 
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        //[Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var book = await _context.Books.FindAsync(id);
