@@ -13,5 +13,6 @@
         // Связь с автором (один ко многим)
         public int AuthorId { get; set; } // Внешний ключ для связи с автором
         public Author Author { get; set; } // Навигационное свойство
+        public string BorrowedByUserId { get; set; } // ID пользователя, взявшего книгу 
     }
 }

@@ -1,21 +1,72 @@
 ﻿using LibraryApp.Data;
 using LibraryApp.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
 namespace LibraryApp.Controllers
 {
-    [Authorize(AuthenticationSchemes = "Identity.Application", Roles = "Admin")]
+    [Authorize(AuthenticationSchemes = "Identity.Application")]
     public class BooksController : Controller
     {
         private readonly LibraryContext _context;
+        private readonly UserManager<IdentityUser> _userManager;
 
-        public BooksController(LibraryContext context)
+        public BooksController(LibraryContext context, UserManager<IdentityUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
+        //Новое
+        // Метод для отображения информации о книге
+        public async Task<IActionResult> Details(int id)
+        {
+            var book = await _context.Books.Include(b => b.Author).FirstOrDefaultAsync(m => m.Id == id);
+            if (book == null)
+            {
+                return NotFound();
+            }
+
+            return View(book);
+        }
+
+        // Метод для взятия книги на руки
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Borrow(int id)
+        {
+            var book = await _context.Books.FindAsync(id);
+            if (book == null || book.BorrowedAt != null)
+            {
+                return NotFound();
+            }
+
+            var userId = _userManager.GetUserId(User);
+            book.BorrowedAt = DateTime.Now;
+            book.ReturnAt = DateTime.Now.AddDays(14); // Срок возврата через 14 дней
+            book.BorrowedByUserId = userId; // Сохраняем идентификатор пользователя, взявшего книгу
+
+            _context.Update(book);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(MyBooks));
+        }
+
+        // Метод для отображения списка книг, взятых пользователем
+        public async Task<IActionResult> MyBooks()
+        {
+            var userId = _userManager.GetUserId(User);
+            var books = await _context.Books
+                .Where(b => b.BorrowedByUserId == userId && b.ReturnAt > DateTime.Now)
+                .Include(b => b.Author)
+                .ToListAsync();
+
+            return View(books);
+        }
+
+        //Старое
 
         // Метод для отображения списка книг 
         public async Task<IActionResult> Index()
@@ -29,7 +80,7 @@ namespace LibraryApp.Controllers
         }
 
         // Метод для отображения формы добавления книги 
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             ViewData["AuthorId"] = new SelectList(_context.Authors, "Id", "FirstName");

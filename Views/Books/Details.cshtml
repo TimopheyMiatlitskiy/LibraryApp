@@ -6,6 +6,28 @@
 
 <h1>Details</h1>
 
+<h2>@Model.Title</h2>
+<p><strong>Автор:</strong> @Model.Author?.FirstName @Model.Author?.LastName</p>
+<p><strong>Жанр:</strong> @Model.Genre</p>
+<p><strong>Описание:</strong> @Model.Description</p>
+
+@if (User.IsInRole("Admin"))
+{
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Редактировать</a>
+    <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">Удалить</a>
+}
+else if (Model.BorrowedAt == null || Model.ReturnAt < DateTime.Now)
+{
+    <form asp-action="Borrow" method="post">
+        <input type="hidden" asp-for="Id" />
+        <button type="submit" class="btn btn-primary">Взять книгу</button>
+    </form>
+}
+else
+{
+    <p class="text-danger">Книга уже взята и будет доступна после @Model.ReturnAt.ToShortDateString()</p>
+}
+
 <div>
     <h4>Book</h4>
     <hr />
