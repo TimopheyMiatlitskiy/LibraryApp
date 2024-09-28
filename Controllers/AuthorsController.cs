@@ -1,10 +1,12 @@
 ﻿using LibraryApp.Data;
 using LibraryApp.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace LibraryApp.Controllers
 {
+    [Authorize(AuthenticationSchemes = "Identity.Application")]
     public class AuthorsController : Controller
     {
         private readonly LibraryContext _context;
@@ -36,6 +38,10 @@ namespace LibraryApp.Controllers
                 _context.Add(author);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
+            }
+            foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+            {
+                Console.WriteLine(error.ErrorMessage); // Вывод ошибок в консоль
             }
             return View(author);
         }

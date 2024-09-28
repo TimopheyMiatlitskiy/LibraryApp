@@ -80,35 +80,33 @@ namespace LibraryApp.Controllers
         }
 
         // Метод для отображения формы добавления книги 
-        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
-            ViewData["AuthorId"] = new SelectList(_context.Authors, "Id", "FirstName");
+            ViewData["AuthorId"] = new SelectList(_context.Authors, "Id", "FullName");
+
             return View();
         }
 
         // Метод для добавления новой книги 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        //[Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Create([Bind("ISBN,Title,Genre,Description,AuthorId,BorrowedAt,ReturnAt")] Book book)
+        public async Task<IActionResult> Create([Bind("ISBN,Title,Genre,Description,AuthorId")] Book book)
         {
-            if (book.BorrowedAt >= book.ReturnAt)
-            {
-                ModelState.AddModelError("ReturnAt", "Дата возврата должна быть позже даты взятия.");
-            }
             if (ModelState.IsValid)
             {
                 _context.Add(book);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["AuthorId"] = new SelectList(_context.Authors, "Id", "FirstName", book.AuthorId);
+            ViewData["AuthorId"] = new SelectList(_context.Authors, "Id", "FullName");
+            foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+            {
+                Console.WriteLine(error.ErrorMessage); // Вывод ошибок в консоль
+            }
             return View(book);
         }
 
         // Метод для редактирования книги 
-        //[Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -128,8 +126,7 @@ namespace LibraryApp.Controllers
         // Метод для сохранения изменений после редактирования 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        //[Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,ISBN,Title,Genre,Description,AuthorId,BorrowedAt,ReturnAt")] Book book)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,ISBN,Title,Genre,Description,AuthorId")] Book book)
         {
             if (id != book.Id)
             {
@@ -161,12 +158,11 @@ namespace LibraryApp.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["AuthorId"] = new SelectList(_context.Authors, "Id", "FirstName", book.AuthorId);
+            ViewData["AuthorId"] = new SelectList(_context.Authors, "Id", "FullName", book.AuthorId);
             return View(book);
         }
 
         // Метод для удаления книги 
-        //[Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -188,7 +184,6 @@ namespace LibraryApp.Controllers
         // Подтверждение удаления книги 
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        //[Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var book = await _context.Books.FindAsync(id);
