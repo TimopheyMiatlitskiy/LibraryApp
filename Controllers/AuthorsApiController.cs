@@ -1,0 +1,133 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using LibraryApp.Data;
+using LibraryApp.Models;
+
+namespace LibraryApp.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class AuthorsApiController : ControllerBase
+    {
+        private readonly LibraryContext _context;
+
+        public AuthorsApiController(LibraryContext context)
+        {
+            _context = context;
+        }
+
+        // GET: api/AuthorsApi
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Author>>> GetAuthors()
+        {
+            return await _context.Authors.Include(a => a.Books).ToListAsync();
+        }
+
+        // GET: api/AuthorsApi/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Author>> GetAuthor(int id)
+        {
+            var author = await _context.Authors.Include(a => a.Books).FirstOrDefaultAsync(a => a.Id == id);
+
+            if (author == null)
+            {
+                return NotFound();
+            }
+
+            return author;
+        }
+
+        // PUT: api/AuthorsApi/5
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutAuthor(int id, Author author)
+        {
+            if (id != author.Id)
+            {
+                return BadRequest();
+            }
+
+            _context.Entry(author).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!AuthorExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        // POST: api/AuthorsApi
+        [HttpPost]
+        public async Task<ActionResult<Author>> PostAuthor(Author author)
+        {
+            _context.Authors.Add(author);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction("GetAuthor", new { id = author.Id }, author);
+        }
+
+        // DELETE: api/AuthorsApi/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteAuthor(int id)
+        {
+            var author = await _context.Authors.FindAsync(id);
+            if (author == null)
+            {
+                return NotFound();
+            }
+
+            _context.Authors.Remove(author);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [HttpPost("{id}/borrow")]
+        public async Task<IActionResult> BorrowBook(int id)
+        {
+            var book = await _context.Books.FindAsync(id);
+
+            if (book == null)
+            {
+                return NotFound("Книга не найдена.");
+            }
+
+            if (book.BorrowedAt != null && book.ReturnAt > DateTime.Now)
+            {
+                return BadRequest("Книга уже взята и будет доступна после " + book.ReturnAt?.ToShortDateString());
+            }
+
+            var userId = User.Identity.Name; // Берем имя пользователя (или ID) из токена, если используется аутентификация
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("Необходимо быть авторизованным для взятия книги.");
+            }
+
+            book.BorrowedByUserId = userId;
+            book.BorrowedAt = DateTime.Now;
+            book.ReturnAt = DateTime.Now.AddDays(14); // Установим срок возврата на 14 дней
+
+            _context.Entry(book).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+
+            return Ok("Книга успешно взята на руки.");
+        }
+
+
+        private bool AuthorExists(int id)
+        {
+            return _context.Authors.Any(e => e.Id == id);
+        }
+    }
+}

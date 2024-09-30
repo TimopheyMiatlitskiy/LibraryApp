@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using LibraryApp.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LibraryApp
@@ -21,8 +22,17 @@ namespace LibraryApp
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
+
 
             var app = builder.Build();
+
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI();
+            }
 
             using (var scope = app.Services.CreateScope())
             {

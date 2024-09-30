@@ -1,4 +1,6 @@
-﻿namespace LibraryApp.Models
+﻿using System.Text.Json.Serialization;
+
+namespace LibraryApp.Models
 {
     public class Author
     {
@@ -10,6 +12,7 @@
         public string Country { get; set; } // Страна автора
 
         // Связь с книгами (один автор может написать много книг)
+        [JsonIgnore]
         public List<Book> Books { get; set; } = new List<Book>();
     }
 }
