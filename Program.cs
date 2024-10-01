@@ -3,6 +3,10 @@ using LibraryApp.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace LibraryApp
 {
@@ -11,7 +15,7 @@ namespace LibraryApp
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-                
+
             // Регистрация DbContext
             builder.Services.AddDbContext<LibraryContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("LibraryConnection")));
@@ -25,6 +29,37 @@ namespace LibraryApp
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            // Конфигурация JWT
+            var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+            var secretKey = jwtSettings["Secret"];
+            var key = Encoding.ASCII.GetBytes(secretKey);
+
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateAudience = true,
+                        ValidateIssuer = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = jwtSettings["Issuer"],
+                        ValidAudience = jwtSettings["Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(key)
+                    };
+            });
+
+            builder.Services.AddAuthorization(options =>
+            {
+                options.AddPolicy("AdminPolicy", policy =>
+                    policy.RequireRole("Admin"));
+
+                options.AddPolicy("UserPolicy", policy =>
+                    policy.RequireRole("User"));
+            });
 
             var app = builder.Build();
 
@@ -67,7 +102,12 @@ namespace LibraryApp
 
             app.UseAuthorization();
             app.UseAuthentication();
-            app.UseStaticFiles();
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = new PhysicalFileProvider(
+                Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")),
+                RequestPath = ""
+            });
 
             app.MapDefaultControllerRoute();
 

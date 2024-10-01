@@ -93,38 +93,6 @@ namespace LibraryApp.Controllers
             return NoContent();
         }
 
-        [HttpPost("{id}/borrow")]
-        public async Task<IActionResult> BorrowBook(int id)
-        {
-            var book = await _context.Books.FindAsync(id);
-
-            if (book == null)
-            {
-                return NotFound("Книга не найдена.");
-            }
-
-            if (book.BorrowedAt != null && book.ReturnAt > DateTime.Now)
-            {
-                return BadRequest("Книга уже взята и будет доступна после " + book.ReturnAt?.ToShortDateString());
-            }
-
-            var userId = User.Identity.Name; // Берем имя пользователя (или ID) из токена, если используется аутентификация
-            if (string.IsNullOrEmpty(userId))
-            {
-                return Unauthorized("Необходимо быть авторизованным для взятия книги.");
-            }
-
-            book.BorrowedByUserId = userId;
-            book.BorrowedAt = DateTime.Now;
-            book.ReturnAt = DateTime.Now.AddDays(14); // Установим срок возврата на 14 дней
-
-            _context.Entry(book).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-
-            return Ok("Книга успешно взята на руки.");
-        }
-
-
         private bool AuthorExists(int id)
         {
             return _context.Authors.Any(e => e.Id == id);

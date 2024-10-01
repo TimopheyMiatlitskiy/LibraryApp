@@ -22,8 +22,24 @@ namespace LibraryApp.Controllers
         {
             var books = await _context.Books
                               .Include(b => b.Author) // Включаем автора
+                              .Select(b => new
+                              {
+                                  b.Id,
+                                  b.ISBN,
+                                  b.Title,
+                                  b.Genre,
+                                  b.Description,
+                                  b.AuthorId,
+                                  AuthorName = b.Author.FullName,
+                                  ImageUrl = !string.IsNullOrEmpty(b.ImagePath)
+                                      ? $"/images/{Path.GetFileName(b.ImagePath)}"
+                                      : null, // Путь к изображению
+                                  b.BorrowedAt,
+                                  b.ReturnAt,
+                                  b.BorrowedByUserId
+                              })
                               .ToListAsync();
-            return books;
+            return Ok(books);
         }
 
         // GET: api/BooksApi/5
@@ -110,6 +126,71 @@ namespace LibraryApp.Controllers
             return NoContent();
         }
 
+        [HttpPost("{id}/borrow")]
+        public async Task<IActionResult> BorrowBook(int id)
+        {
+            var book = await _context.Books.FindAsync(id);
+
+            if (book == null)
+            {
+                return NotFound("Книга не найдена.");
+            }
+
+            if (book.BorrowedAt != null && book.ReturnAt > DateTime.Now)
+            {
+                return BadRequest("Книга уже взята и будет доступна после " + book.ReturnAt.ToShortDateString());
+            }
+
+            var userId = User.Identity.Name; // Берем имя пользователя (или ID) из токена, если используется аутентификация
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("Необходимо быть авторизованным для взятия книги.");
+            }
+
+            book.BorrowedByUserId = userId;
+            book.BorrowedAt = DateTime.Now;
+            book.ReturnAt = DateTime.Now.AddDays(14); // Установим срок возврата на 14 дней
+
+            _context.Entry(book).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+
+            return Ok("Книга успешно взята на руки.");
+        }
+
+        [HttpPost("{id}/upload-image")]
+        public async Task<IActionResult> UploadImage(int id, IFormFile image)
+        {
+            var book = await _context.Books.FindAsync(id);
+
+            if (book == null)
+            {
+                return NotFound("Книга не найдена.");
+            }
+
+            if (image == null || image.Length == 0)
+            {
+                return BadRequest("Пожалуйста, выберите файл для загрузки.");
+            }
+
+            // Создаем путь к файлу
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+            Directory.CreateDirectory(uploadsFolder); // Убедимся, что папка существует
+
+            var filePath = Path.Combine(uploadsFolder, $"{Guid.NewGuid()}_{image.FileName}");
+
+            // Сохраняем файл на сервере
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await image.CopyToAsync(fileStream);
+            }
+
+            // Сохраняем путь к изображению в базе данных
+            book.ImagePath = filePath;
+            _context.Entry(book).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { ImagePath = filePath });
+        }
         private bool BookExists(int id)
         {
             return _context.Books.Any(e => e.Id == id);

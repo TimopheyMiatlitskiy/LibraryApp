@@ -16,5 +16,7 @@
         public DateTime ReturnAt { get; set; } // Дата возврата книги
         public DateTime BorrowedAt { get; set; } // Дата когда взяли книгу
         public string? BorrowedByUserId { get; set; } // ID пользователя, взявшего книгу 
+
+        public string? ImagePath { get; set; } // Путь к изображению книги
     }
 }
