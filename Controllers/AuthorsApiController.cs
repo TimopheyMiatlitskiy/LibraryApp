@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using LibraryApp.Data;
 using LibraryApp.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace LibraryApp.Controllers
 {
@@ -17,6 +18,7 @@ namespace LibraryApp.Controllers
         }
 
         // GET: api/AuthorsApi
+        [Authorize(Policy = "UserPolicy")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Author>>> GetAuthors()
         {
@@ -24,6 +26,7 @@ namespace LibraryApp.Controllers
         }
 
         // GET: api/AuthorsApi/5
+        [Authorize(Policy = "UserPolicy")]
         [HttpGet("{id}")]
         public async Task<ActionResult<Author>> GetAuthor(int id)
         {
@@ -38,6 +41,7 @@ namespace LibraryApp.Controllers
         }
 
         // PUT: api/AuthorsApi/5
+        [Authorize(Policy = "AdminPolicy")]
         [HttpPut("{id}")]
         public async Task<IActionResult> PutAuthor(int id, Author author)
         {
@@ -68,6 +72,7 @@ namespace LibraryApp.Controllers
         }
 
         // POST: api/AuthorsApi
+        [Authorize(Policy = "AdminPolicy")]
         [HttpPost]
         public async Task<ActionResult<Author>> PostAuthor(Author author)
         {
@@ -78,6 +83,7 @@ namespace LibraryApp.Controllers
         }
 
         // DELETE: api/AuthorsApi/5
+        [Authorize(Policy = "AdminPolicy")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAuthor(int id)
         {

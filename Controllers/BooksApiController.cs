@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using LibraryApp.Data;
 using LibraryApp.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace LibraryApp.Controllers
 {
@@ -17,6 +18,7 @@ namespace LibraryApp.Controllers
         }
 
         // GET: api/BooksApi
+        [Authorize(Policy = "UserPolicy")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Book>>> GetBooks()
         {
@@ -43,6 +45,7 @@ namespace LibraryApp.Controllers
         }
 
         // GET: api/BooksApi/5
+        [Authorize(Policy = "UserPolicy")]
         [HttpGet("{id}")]
         public async Task<ActionResult<Book>> GetBook(int id)
         {
@@ -57,6 +60,7 @@ namespace LibraryApp.Controllers
         }
 
         // GET: api/BooksApi/ISBN/978-3-16-148410-0
+        [Authorize(Policy = "UserPolicy")]
         [HttpGet("ISBN/{isbn}")]
         public async Task<ActionResult<Book>> GetBookByISBN(string isbn)
         {
@@ -71,6 +75,7 @@ namespace LibraryApp.Controllers
         }
 
         // PUT: api/BooksApi/5
+        [Authorize(Policy = "AdminPolicy")]
         [HttpPut("{id}")]
         public async Task<IActionResult> PutBook(int id, Book book)
         {
@@ -101,6 +106,7 @@ namespace LibraryApp.Controllers
         }
 
         // POST: api/BooksApi
+        [Authorize(Policy = "AdminPolicy")]
         [HttpPost]
         public async Task<ActionResult<Book>> PostBook(Book book)
         {
@@ -111,6 +117,7 @@ namespace LibraryApp.Controllers
         }
 
         // DELETE: api/BooksApi/5
+        [Authorize(Policy = "AdminPolicy")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBook(int id)
         {
@@ -126,6 +133,7 @@ namespace LibraryApp.Controllers
             return NoContent();
         }
 
+        [Authorize(Policy = "UserPolicy")]
         [HttpPost("{id}/borrow")]
         public async Task<IActionResult> BorrowBook(int id)
         {
@@ -157,6 +165,7 @@ namespace LibraryApp.Controllers
             return Ok("Книга успешно взята на руки.");
         }
 
+        [Authorize(Policy = "AdminPolicy")]
         [HttpPost("{id}/upload-image")]
         public async Task<IActionResult> UploadImage(int id, IFormFile image)
         {

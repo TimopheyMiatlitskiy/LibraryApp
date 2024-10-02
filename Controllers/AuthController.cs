@@ -42,11 +42,43 @@ namespace LibraryApp.Controllers
             // Сохраните RefreshToken в базе данных или кэшировании
             return Ok(new { accessToken, refreshToken });
         }
-    }
+        
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        {
+            if (request.Password != request.ConfirmPassword)
+            {
+                return BadRequest("Пароли не совпадают");
+            }
 
+            var user = new IdentityUser
+            {
+                UserName = request.Email,
+                Email = request.Email
+            };
+
+            var result = await _userManager.CreateAsync(user, request.Password);
+
+            if (!result.Succeeded)
+            {
+                return BadRequest(result.Errors);
+            }
+
+            // Добавим пользователя в роль "User" по умолчанию
+            await _userManager.AddToRoleAsync(user, "User");
+
+            return Ok("Регистрация прошла успешно");
+        }
+    }
     public class LoginRequest
     {
         public string Email { get; set; }
         public string Password { get; set; }
+    }
+    public class RegisterRequest
+    {
+        public string Email { get; set; }
+        public string Password { get; set; }
+        public string ConfirmPassword { get; set; }
     }
 }

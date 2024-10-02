@@ -7,6 +7,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using LibraryApp.Services;
 
 namespace LibraryApp
 {
@@ -50,6 +51,36 @@ namespace LibraryApp
                         ValidAudience = jwtSettings["Audience"],
                         IssuerSigningKey = new SymmetricSecurityKey(key)
                     };
+                });
+
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "Library API", Version = "v1" });
+
+                // Настройка JWT в Swagger
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    In = ParameterLocation.Header,
+                    Description = "Введите 'Bearer' [пробел] и ваш токен",
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer"
+                });
+
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                                {
+                                    Type = ReferenceType.SecurityScheme,
+                                    Id = "Bearer"
+                                }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
             });
 
             builder.Services.AddAuthorization(options =>
@@ -60,6 +91,8 @@ namespace LibraryApp
                 options.AddPolicy("UserPolicy", policy =>
                     policy.RequireRole("User"));
             });
+
+            builder.Services.AddSingleton<TokenService>();
 
             var app = builder.Build();
 
@@ -78,6 +111,12 @@ namespace LibraryApp
                 if (!await roleManager.RoleExistsAsync("Admin"))
                 {
                     await roleManager.CreateAsync(new IdentityRole("Admin"));
+                }
+
+                // Проверяем, существует ли роль "User"
+                if (!await roleManager.RoleExistsAsync("User"))
+                {
+                    await roleManager.CreateAsync(new IdentityRole("User"));
                 }
 
                 // Создаем администратора, если его еще нет
