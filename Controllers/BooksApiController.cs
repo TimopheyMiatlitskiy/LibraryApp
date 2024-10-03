@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using LibraryApp.Data;
+using LibraryApp.Repositories;
 using LibraryApp.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 
 namespace LibraryApp.Controllers
 {
@@ -10,11 +10,11 @@ namespace LibraryApp.Controllers
     [ApiController]
     public class BooksApiController : ControllerBase
     {
-        private readonly LibraryContext _context;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public BooksApiController(LibraryContext context)
+        public BooksApiController(IUnitOfWork unitOfWork)
         {
-            _context = context;
+            _unitOfWork = unitOfWork;
         }
 
         // GET: api/BooksApi
@@ -22,26 +22,23 @@ namespace LibraryApp.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Book>>> GetBooks()
         {
-            var books = await _context.Books
-                              .Include(b => b.Author) // Включаем автора
-                              .Select(b => new
-                              {
-                                  b.Id,
-                                  b.ISBN,
-                                  b.Title,
-                                  b.Genre,
-                                  b.Description,
-                                  b.AuthorId,
-                                  AuthorName = b.Author.FullName,
-                                  ImageUrl = !string.IsNullOrEmpty(b.ImagePath)
-                                      ? $"/images/{Path.GetFileName(b.ImagePath)}"
-                                      : null, // Путь к изображению
-                                  b.BorrowedAt,
-                                  b.ReturnAt,
-                                  b.BorrowedByUserId
-                              })
-                              .ToListAsync();
-            return Ok(books);
+            var books = await _unitOfWork.Books.GetAllAsync();
+            return Ok(books.Select(b => new
+            {
+                b.Id,
+                b.ISBN,
+                b.Title,
+                b.Genre,
+                b.Description,
+                b.AuthorId,
+                AuthorName = b.Author?.FullName,
+                ImageUrl = !string.IsNullOrEmpty(b.ImagePath)
+                    ? $"/images/{Path.GetFileName(b.ImagePath)}"
+                    : null,
+                b.BorrowedAt,
+                b.ReturnAt,
+                b.BorrowedByUserId
+            }));
         }
 
         // GET: api/BooksApi/5
@@ -49,14 +46,14 @@ namespace LibraryApp.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Book>> GetBook(int id)
         {
-            var book = await _context.Books.Include(b => b.Author).FirstOrDefaultAsync(b => b.Id == id);
+            var book = await _unitOfWork.Books.GetByIdAsync(id);
 
             if (book == null)
             {
                 return NotFound();
             }
 
-            return book;
+            return Ok(book);
         }
 
         // GET: api/BooksApi/ISBN/978-3-16-148410-0
@@ -64,14 +61,15 @@ namespace LibraryApp.Controllers
         [HttpGet("ISBN/{isbn}")]
         public async Task<ActionResult<Book>> GetBookByISBN(string isbn)
         {
-            var book = await _context.Books.Include(b => b.Author).FirstOrDefaultAsync(b => b.ISBN == isbn);
+            var books = await _unitOfWork.Books.GetAllAsync();
+            var book = books.FirstOrDefault(b => b.ISBN == isbn);
 
             if (book == null)
             {
                 return NotFound();
             }
 
-            return book;
+            return Ok(book);
         }
 
         // PUT: api/BooksApi/5
@@ -84,15 +82,15 @@ namespace LibraryApp.Controllers
                 return BadRequest();
             }
 
-            _context.Entry(book).State = EntityState.Modified;
+            _unitOfWork.Books.Update(book);
 
             try
             {
-                await _context.SaveChangesAsync();
+                await _unitOfWork.CompleteAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!BookExists(id))
+                if (!await BookExists(id))
                 {
                     return NotFound();
                 }
@@ -110,10 +108,10 @@ namespace LibraryApp.Controllers
         [HttpPost]
         public async Task<ActionResult<Book>> PostBook(Book book)
         {
-            _context.Books.Add(book);
-            await _context.SaveChangesAsync();
+            await _unitOfWork.Books.AddAsync(book);
+            await _unitOfWork.CompleteAsync();
 
-            return CreatedAtAction("GetBook", new { id = book.Id }, book);
+            return CreatedAtAction(nameof(GetBook), new { id = book.Id }, book);
         }
 
         // DELETE: api/BooksApi/5
@@ -121,14 +119,14 @@ namespace LibraryApp.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBook(int id)
         {
-            var book = await _context.Books.FindAsync(id);
+            var book = await _unitOfWork.Books.GetByIdAsync(id);
             if (book == null)
             {
                 return NotFound();
             }
 
-            _context.Books.Remove(book);
-            await _context.SaveChangesAsync();
+            _unitOfWork.Books.Delete(book);
+            await _unitOfWork.CompleteAsync();
 
             return NoContent();
         }
@@ -137,7 +135,7 @@ namespace LibraryApp.Controllers
         [HttpPost("{id}/borrow")]
         public async Task<IActionResult> BorrowBook(int id)
         {
-            var book = await _context.Books.FindAsync(id);
+            var book = await _unitOfWork.Books.GetByIdAsync(id);
 
             if (book == null)
             {
@@ -159,8 +157,8 @@ namespace LibraryApp.Controllers
             book.BorrowedAt = DateTime.Now;
             book.ReturnAt = DateTime.Now.AddDays(14); // Установим срок возврата на 14 дней
 
-            _context.Entry(book).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+            _unitOfWork.Books.Update(book);
+            await _unitOfWork.CompleteAsync();
 
             return Ok("Книга успешно взята на руки.");
         }
@@ -169,7 +167,7 @@ namespace LibraryApp.Controllers
         [HttpPost("{id}/upload-image")]
         public async Task<IActionResult> UploadImage(int id, IFormFile image)
         {
-            var book = await _context.Books.FindAsync(id);
+            var book = await _unitOfWork.Books.GetByIdAsync(id);
 
             if (book == null)
             {
@@ -195,14 +193,15 @@ namespace LibraryApp.Controllers
 
             // Сохраняем путь к изображению в базе данных
             book.ImagePath = filePath;
-            _context.Entry(book).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+            _unitOfWork.Books.Update(book);
+            await _unitOfWork.CompleteAsync();
 
             return Ok(new { ImagePath = filePath });
         }
-        private bool BookExists(int id)
+
+        private async Task<bool> BookExists(int id)
         {
-            return _context.Books.Any(e => e.Id == id);
+            return await _unitOfWork.Books.GetByIdAsync(id) != null;
         }
     }
 }

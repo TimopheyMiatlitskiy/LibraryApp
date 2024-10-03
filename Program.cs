@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using LibraryApp.Services;
+using LibraryApp.Repositories;
 
 namespace LibraryApp
 {
@@ -49,7 +50,7 @@ namespace LibraryApp
                         ValidateIssuerSigningKey = true,
                         ValidIssuer = jwtSettings["Issuer"],
                         ValidAudience = jwtSettings["Audience"],
-                        IssuerSigningKey = new SymmetricSecurityKey(key)
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Secret"]))
                     };
                 });
 
@@ -94,12 +95,28 @@ namespace LibraryApp
 
             builder.Services.AddSingleton<TokenService>();
 
+            builder.Services.AddLogging(config =>
+            {
+                config.AddConsole();
+                config.AddDebug();
+            });
+
+            //UnitOfWork
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+            builder.Services.AddScoped<IBookRepository, BookRepository>();
+            builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
+
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
+                app.MapGet("/", context =>
+                {
+                    context.Response.Redirect("/swagger");
+                    return Task.CompletedTask;
+                });
             }
 
             using (var scope = app.Services.CreateScope())
@@ -117,6 +134,15 @@ namespace LibraryApp
                 if (!await roleManager.RoleExistsAsync("User"))
                 {
                     await roleManager.CreateAsync(new IdentityRole("User"));
+                }
+                // Назначаем роль "User" для каждого пользователя, который её не имеет
+                var users = await userManager.Users.ToListAsync();
+                foreach (var user in users)
+                {
+                    if (!await userManager.IsInRoleAsync(user, "User"))
+                    {
+                        await userManager.AddToRoleAsync(user, "User");
+                    }
                 }
 
                 // Создаем администратора, если его еще нет
@@ -139,8 +165,14 @@ namespace LibraryApp
 
             app.UseRouting();
 
-            app.UseAuthorization();
-            app.UseAuthentication();
+            app.UseAuthentication();  // Важно: сначала UseAuthentication
+            app.UseAuthorization();   // Затем UseAuthorization
+
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
+
             app.UseStaticFiles(new StaticFileOptions
             {
                 FileProvider = new PhysicalFileProvider(

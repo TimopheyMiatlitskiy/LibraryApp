@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using LibraryApp.Data;
+using LibraryApp.Repositories;
 using LibraryApp.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 
 namespace LibraryApp.Controllers
 {
@@ -10,11 +10,11 @@ namespace LibraryApp.Controllers
     [ApiController]
     public class AuthorsApiController : ControllerBase
     {
-        private readonly LibraryContext _context;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public AuthorsApiController(LibraryContext context)
+        public AuthorsApiController(IUnitOfWork unitOfWork)
         {
-            _context = context;
+            _unitOfWork = unitOfWork;
         }
 
         // GET: api/AuthorsApi
@@ -22,22 +22,26 @@ namespace LibraryApp.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Author>>> GetAuthors()
         {
-            return await _context.Authors.Include(a => a.Books).ToListAsync();
+            var authors = await _unitOfWork.Authors.GetAllAsync();
+            return Ok(authors);
         }
-
+        
         // GET: api/AuthorsApi/5
         [Authorize(Policy = "UserPolicy")]
         [HttpGet("{id}")]
         public async Task<ActionResult<Author>> GetAuthor(int id)
         {
-            var author = await _context.Authors.Include(a => a.Books).FirstOrDefaultAsync(a => a.Id == id);
+            var userId = User.Identity?.Name;
+
+            var author = await _unitOfWork.Authors.GetByIdAsync(id);
 
             if (author == null)
             {
-                return NotFound();
+                Console.WriteLine("Пользователь не аутентифицирован");
+                return Unauthorized("Пользователь не аутентифицирован");
             }
 
-            return author;
+            return Ok(author);
         }
 
         // PUT: api/AuthorsApi/5
@@ -50,15 +54,15 @@ namespace LibraryApp.Controllers
                 return BadRequest();
             }
 
-            _context.Entry(author).State = EntityState.Modified;
+            _unitOfWork.Authors.Update(author);
 
             try
             {
-                await _context.SaveChangesAsync();
+                await _unitOfWork.CompleteAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!AuthorExists(id))
+                if (!await AuthorExists(id))
                 {
                     return NotFound();
                 }
@@ -76,10 +80,10 @@ namespace LibraryApp.Controllers
         [HttpPost]
         public async Task<ActionResult<Author>> PostAuthor(Author author)
         {
-            _context.Authors.Add(author);
-            await _context.SaveChangesAsync();
+            await _unitOfWork.Authors.AddAsync(author);
+            await _unitOfWork.CompleteAsync();
 
-            return CreatedAtAction("GetAuthor", new { id = author.Id }, author);
+            return CreatedAtAction(nameof(GetAuthor), new { id = author.Id }, author);
         }
 
         // DELETE: api/AuthorsApi/5
@@ -87,21 +91,21 @@ namespace LibraryApp.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAuthor(int id)
         {
-            var author = await _context.Authors.FindAsync(id);
+            var author = await _unitOfWork.Authors.GetByIdAsync(id);
             if (author == null)
             {
                 return NotFound();
             }
 
-            _context.Authors.Remove(author);
-            await _context.SaveChangesAsync();
+            _unitOfWork.Authors.Delete(author);
+            await _unitOfWork.CompleteAsync();
 
             return NoContent();
         }
 
-        private bool AuthorExists(int id)
+        private async Task<bool> AuthorExists(int id)
         {
-            return _context.Authors.Any(e => e.Id == id);
+            return await _unitOfWork.Authors.GetByIdAsync(id) != null;
         }
     }
 }

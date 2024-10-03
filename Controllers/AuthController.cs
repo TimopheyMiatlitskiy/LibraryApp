@@ -69,6 +69,25 @@ namespace LibraryApp.Controllers
 
             return Ok("Регистрация прошла успешно");
         }
+        [HttpPost("ResetPassword")]
+        public async Task<IActionResult> ResetPassword(string email, string newPassword)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                return NotFound("Пользователь не найден.");
+            }
+
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+
+            if (result.Succeeded)
+            {
+                return Ok("Пароль успешно сброшен.");
+            }
+
+            return BadRequest("Ошибка при сбросе пароля.");
+        }
     }
     public class LoginRequest
     {
