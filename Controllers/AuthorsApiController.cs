@@ -31,14 +31,11 @@ namespace LibraryApp.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Author>> GetAuthor(int id)
         {
-            var userId = User.Identity?.Name;
-
             var author = await _unitOfWork.Authors.GetByIdAsync(id);
 
             if (author == null)
             {
-                Console.WriteLine("Пользователь не аутентифицирован");
-                return Unauthorized("Пользователь не аутентифицирован");
+                throw new KeyNotFoundException("Автор с указанным ID не найден.");
             }
 
             return Ok(author);
@@ -64,7 +61,7 @@ namespace LibraryApp.Controllers
             {
                 if (!await AuthorExists(id))
                 {
-                    return NotFound();
+                    throw new KeyNotFoundException("Автор с указанным ID не найден.");
                 }
                 else
                 {
@@ -94,7 +91,7 @@ namespace LibraryApp.Controllers
             var author = await _unitOfWork.Authors.GetByIdAsync(id);
             if (author == null)
             {
-                return NotFound();
+                throw new KeyNotFoundException("Автор с указанным ID не найден.");
             }
 
             _unitOfWork.Authors.Delete(author);

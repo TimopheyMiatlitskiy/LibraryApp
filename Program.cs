@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using LibraryApp.Services;
 using LibraryApp.Repositories;
+using LibraryApp.Middleware;
 
 namespace LibraryApp
 {
@@ -110,6 +111,9 @@ namespace LibraryApp
 
             if (app.Environment.IsDevelopment())
             {
+                app.UseExceptionMiddleware();
+                //app.UseExceptionHandler("/Error");
+                app.UseHsts();
                 app.UseSwagger();
                 app.UseSwaggerUI();
                 app.MapGet("/", context =>
@@ -118,6 +122,7 @@ namespace LibraryApp
                     return Task.CompletedTask;
                 });
             }
+
 
             using (var scope = app.Services.CreateScope())
             {
@@ -165,6 +170,7 @@ namespace LibraryApp
 
             app.UseRouting();
 
+            app.UseCors();
             app.UseAuthentication();  // Важно: сначала UseAuthentication
             app.UseAuthorization();   // Затем UseAuthorization
 

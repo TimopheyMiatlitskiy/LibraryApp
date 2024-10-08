@@ -46,13 +46,7 @@ namespace LibraryApp.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Book>> GetBook(int id)
         {
-            var book = await _unitOfWork.Books.GetByIdAsync(id);
-
-            if (book == null)
-            {
-                return NotFound();
-            }
-
+            var book = await _unitOfWork.Books.GetByIdAsync(id) ?? throw new KeyNotFoundException("Книга с указанным ID не найдена.");
             return Ok(book);
         }
 
@@ -62,13 +56,7 @@ namespace LibraryApp.Controllers
         public async Task<ActionResult<Book>> GetBookByISBN(string isbn)
         {
             var books = await _unitOfWork.Books.GetAllAsync();
-            var book = books.FirstOrDefault(b => b.ISBN == isbn);
-
-            if (book == null)
-            {
-                return NotFound();
-            }
-
+            var book = books.FirstOrDefault(b => b.ISBN == isbn) ?? throw new KeyNotFoundException("Книга с указанным ISBN не найдена.");
             return Ok(book);
         }
 
@@ -92,7 +80,7 @@ namespace LibraryApp.Controllers
             {
                 if (!await BookExists(id))
                 {
-                    return NotFound();
+                    throw new KeyNotFoundException("Книга с указанным ID не найдена.");
                 }
                 else
                 {
@@ -122,7 +110,7 @@ namespace LibraryApp.Controllers
             var book = await _unitOfWork.Books.GetByIdAsync(id);
             if (book == null)
             {
-                return NotFound();
+                throw new KeyNotFoundException("Книга с указанным ID не найдена.");
             }
 
             _unitOfWork.Books.Delete(book);
@@ -139,7 +127,7 @@ namespace LibraryApp.Controllers
 
             if (book == null)
             {
-                return NotFound("Книга не найдена.");
+                throw new KeyNotFoundException("Книга не найдена.");
             }
 
             if (book.BorrowedAt != null && book.ReturnAt > DateTime.Now)
@@ -171,7 +159,7 @@ namespace LibraryApp.Controllers
 
             if (book == null)
             {
-                return NotFound("Книга не найдена.");
+                throw new KeyNotFoundException("Книга не найдена.");
             }
 
             if (image == null || image.Length == 0)
