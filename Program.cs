@@ -112,7 +112,6 @@ namespace LibraryApp
             if (app.Environment.IsDevelopment())
             {
                 app.UseExceptionMiddleware();
-                //app.UseExceptionHandler("/Error");
                 app.UseHsts();
                 app.UseSwagger();
                 app.UseSwaggerUI();

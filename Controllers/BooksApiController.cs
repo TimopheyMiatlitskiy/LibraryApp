@@ -18,27 +18,17 @@ namespace LibraryApp.Controllers
         }
 
         // GET: api/BooksApi
-        [Authorize(Policy = "UserPolicy")]
+        //[Authorize(Policy = "UserPolicy")]
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Book>>> GetBooks()
+        public async Task<ActionResult<IEnumerable<Book>>> GetBooks(int pageNumber = 1, int pageSize = 10)
         {
             var books = await _unitOfWork.Books.GetAllAsync();
-            return Ok(books.Select(b => new
-            {
-                b.Id,
-                b.ISBN,
-                b.Title,
-                b.Genre,
-                b.Description,
-                b.AuthorId,
-                AuthorName = b.Author?.FullName,
-                ImageUrl = !string.IsNullOrEmpty(b.ImagePath)
-                    ? $"/images/{Path.GetFileName(b.ImagePath)}"
-                    : null,
-                b.BorrowedAt,
-                b.ReturnAt,
-                b.BorrowedByUserId
-            }));
+            var paginatedBooks = books
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return Ok(paginatedBooks);
         }
 
         // GET: api/BooksApi/5

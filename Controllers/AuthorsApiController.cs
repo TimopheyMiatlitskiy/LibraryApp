@@ -3,6 +3,7 @@ using LibraryApp.Repositories;
 using LibraryApp.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using static System.Reflection.Metadata.BlobBuilder;
 
 namespace LibraryApp.Controllers
 {
@@ -20,10 +21,15 @@ namespace LibraryApp.Controllers
         // GET: api/AuthorsApi
         [Authorize(Policy = "UserPolicy")]
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Author>>> GetAuthors()
+        public async Task<ActionResult<IEnumerable<Author>>> GetAuthors(int pageNumber = 1, int pageSize = 10)
         {
             var authors = await _unitOfWork.Authors.GetAllAsync();
-            return Ok(authors);
+            var paginatedAuthors = authors
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return Ok(paginatedAuthors);
         }
         
         // GET: api/AuthorsApi/5
