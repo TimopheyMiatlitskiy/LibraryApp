@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using LibraryApp.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.OpenApi.Models;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -10,6 +9,8 @@ using System.Text;
 using LibraryApp.Services;
 using LibraryApp.Repositories;
 using LibraryApp.Middleware;
+using FluentValidation.AspNetCore;
+using LibraryApp.Validators;
 
 namespace LibraryApp
 {
@@ -107,6 +108,14 @@ namespace LibraryApp
             builder.Services.AddScoped<IBookRepository, BookRepository>();
             builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
 
+            //Mapping
+            builder.Services.AddAutoMapper(typeof(Program));
+            builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
+            //FluentValidation
+            builder.Services.AddControllers()
+                .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<BookValidator>());
+
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())
@@ -120,7 +129,7 @@ namespace LibraryApp
                     context.Response.Redirect("/swagger");
                     return Task.CompletedTask;
                 });
-            }
+            } 
 
 
             using (var scope = app.Services.CreateScope())

@@ -3,6 +3,8 @@ using LibraryApp.Repositories;
 using LibraryApp.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using AutoMapper;
+using LibraryApp.DTOs;
 
 namespace LibraryApp.Controllers
 {
@@ -11,16 +13,18 @@ namespace LibraryApp.Controllers
     public class BooksApiController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-        public BooksApiController(IUnitOfWork unitOfWork)
+        public BooksApiController(IUnitOfWork unitOfWork, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
+            _mapper = mapper;
         }
 
         // GET: api/BooksApi
         //[Authorize(Policy = "UserPolicy")]
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Book>>> GetBooks(int pageNumber = 1, int pageSize = 10)
+        public async Task<ActionResult<IEnumerable<BookDto>>> GetBooks(int pageNumber = 1, int pageSize = 10)
         {
             var books = await _unitOfWork.Books.GetAllAsync();
             var paginatedBooks = books
@@ -28,38 +32,42 @@ namespace LibraryApp.Controllers
                 .Take(pageSize)
                 .ToList();
 
-            return Ok(paginatedBooks);
+            var bookDtos = _mapper.Map<IEnumerable<BookDto>>(paginatedBooks);
+            return Ok(bookDtos);
         }
 
         // GET: api/BooksApi/5
         [Authorize(Policy = "UserPolicy")]
         [HttpGet("{id}")]
-        public async Task<ActionResult<Book>> GetBook(int id)
+        public async Task<ActionResult<BookDto>> GetBook(int id)
         {
             var book = await _unitOfWork.Books.GetByIdAsync(id) ?? throw new KeyNotFoundException("Книга с указанным ID не найдена.");
-            return Ok(book);
+            var bookDto = _mapper.Map<BookDto>(book);
+            return Ok(bookDto);
         }
 
         // GET: api/BooksApi/ISBN/978-3-16-148410-0
         [Authorize(Policy = "UserPolicy")]
         [HttpGet("ISBN/{isbn}")]
-        public async Task<ActionResult<Book>> GetBookByISBN(string isbn)
+        public async Task<ActionResult<BookDto>> GetBookByISBN(string isbn)
         {
             var books = await _unitOfWork.Books.GetAllAsync();
             var book = books.FirstOrDefault(b => b.ISBN == isbn) ?? throw new KeyNotFoundException("Книга с указанным ISBN не найдена.");
-            return Ok(book);
+            var bookDto = _mapper.Map<BookDto>(book);
+            return Ok(bookDto);
         }
 
         // PUT: api/BooksApi/5
         [Authorize(Policy = "AdminPolicy")]
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutBook(int id, Book book)
+        public async Task<IActionResult> PutBook(int id, BookDto bookDto)
         {
-            if (id != book.Id)
+            if (id != bookDto.Id)
             {
                 return BadRequest();
             }
 
+            var book = _mapper.Map<Book>(bookDto);
             _unitOfWork.Books.Update(book);
 
             try
@@ -82,14 +90,16 @@ namespace LibraryApp.Controllers
         }
 
         // POST: api/BooksApi
-        [Authorize(Policy = "AdminPolicy")]
+        //[Authorize(Policy = "AdminPolicy")]
         [HttpPost]
-        public async Task<ActionResult<Book>> PostBook(Book book)
+        public async Task<ActionResult<BookDto>> PostBook(BookDto bookDto)
         {
+            var book = _mapper.Map<Book>(bookDto); // Маппинг DTO в модель
             await _unitOfWork.Books.AddAsync(book);
             await _unitOfWork.CompleteAsync();
 
-            return CreatedAtAction(nameof(GetBook), new { id = book.Id }, book);
+            var createdBookDto = _mapper.Map<BookDto>(book); // Маппинг модели в DTO
+            return CreatedAtAction(nameof(GetBook), new { id = book.Id }, createdBookDto);
         }
 
         // DELETE: api/BooksApi/5
@@ -97,11 +107,7 @@ namespace LibraryApp.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBook(int id)
         {
-            var book = await _unitOfWork.Books.GetByIdAsync(id);
-            if (book == null)
-            {
-                throw new KeyNotFoundException("Книга с указанным ID не найдена.");
-            }
+            var book = await _unitOfWork.Books.GetByIdAsync(id) ?? throw new KeyNotFoundException("Книга с указанным ID не найдена.");
 
             _unitOfWork.Books.Delete(book);
             await _unitOfWork.CompleteAsync();
@@ -138,7 +144,8 @@ namespace LibraryApp.Controllers
             _unitOfWork.Books.Update(book);
             await _unitOfWork.CompleteAsync();
 
-            return Ok("Книга успешно взята на руки.");
+            var bookDto = _mapper.Map<BookDto>(book); // Маппинг модели в DTO
+            return Ok($"{bookDto} Книга успешно взята на руки.");
         }
 
         [Authorize(Policy = "AdminPolicy")]
@@ -174,7 +181,8 @@ namespace LibraryApp.Controllers
             _unitOfWork.Books.Update(book);
             await _unitOfWork.CompleteAsync();
 
-            return Ok(new { ImagePath = filePath });
+            var bookDto = _mapper.Map<BookDto>(book); // Маппинг модели в DTO
+            return Ok(new { bookDto.ImagePath });
         }
 
         private async Task<bool> BookExists(int id)
