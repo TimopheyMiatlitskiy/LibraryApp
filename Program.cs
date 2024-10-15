@@ -31,7 +31,6 @@ namespace LibraryApp
             // Add services to the container.
             builder.Services.AddControllersWithViews();
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
 
             // Конфигурация JWT
             var jwtSettings = builder.Configuration.GetSection("JwtSettings");
