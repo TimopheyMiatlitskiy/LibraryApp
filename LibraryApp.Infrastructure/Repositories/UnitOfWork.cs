@@ -1,4 +1,5 @@
 ﻿using LibraryApp.Data;
+using LibraryApp.Interfaces;
 
 namespace LibraryApp.Repositories
 {

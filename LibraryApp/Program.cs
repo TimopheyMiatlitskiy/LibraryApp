@@ -11,6 +11,8 @@ using LibraryApp.Repositories;
 using LibraryApp.Middleware;
 using FluentValidation.AspNetCore;
 using LibraryApp.Validators;
+using LibraryApp.Interfaces;
+using LibraryApp.Mappings;
 
 namespace LibraryApp
 {
@@ -108,8 +110,7 @@ namespace LibraryApp
             builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
 
             //Mapping
-            builder.Services.AddAutoMapper(typeof(Program));
-            builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+            builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
 
             //FluentValidation
             builder.Services.AddControllers()

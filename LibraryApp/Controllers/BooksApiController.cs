@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using LibraryApp.Repositories;
 using LibraryApp.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using AutoMapper;
 using LibraryApp.DTOs;
+using LibraryApp.Interfaces;
 
 namespace LibraryApp.Controllers
 {

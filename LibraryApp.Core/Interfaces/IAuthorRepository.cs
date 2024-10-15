@@ -1,6 +1,6 @@
 ﻿using LibraryApp.Models;
 
-namespace LibraryApp.Repositories
+namespace LibraryApp.Interfaces
 {
     public interface IAuthorRepository
     {

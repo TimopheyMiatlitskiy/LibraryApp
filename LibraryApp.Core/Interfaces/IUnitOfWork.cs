@@ -1,4 +1,4 @@
-﻿namespace LibraryApp.Repositories
+﻿namespace LibraryApp.Interfaces
 {
     public interface IUnitOfWork : IDisposable
     {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace LibraryApp.Repositories
+namespace LibraryApp.Interfaces
 {
     public interface IBookRepository
     {
