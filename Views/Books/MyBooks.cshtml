@@ -16,7 +16,7 @@
             <tr>
                 <td>@book.Title</td>
                 <td>@book.Author?.FirstName @book.Author?.LastName</td>
-                <td>@book.ReturnAt.ToShortDateString()</td>
+                <td>@book.ReturnAt?.ToShortDateString()</td>
             </tr>
         }
     </tbody>

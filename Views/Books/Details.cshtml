@@ -26,5 +26,5 @@ else if (Model.BorrowedAt == null || Model.ReturnAt < DateTime.Now)
 }
 else
 {
-    <p class="text-danger">Книга уже взята и будет доступна после @Model.ReturnAt.ToShortDateString()</p>
+    <p class="text-danger">Книга уже взята и будет доступна после @Model.ReturnAt?.ToShortDateString()</p>
 }

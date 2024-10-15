@@ -115,6 +115,8 @@ namespace LibraryApp
             //FluentValidation
             builder.Services.AddControllers()
                 .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<BookValidator>());
+            builder.Services.AddControllers()
+                .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<AuthorValidator>());
 
             var app = builder.Build();
 

@@ -58,7 +58,7 @@ namespace LibraryApp.Controllers
         }
 
         // PUT: api/BooksApi/5
-        [Authorize(Policy = "AdminPolicy")]
+        //[Authorize(Policy = "AdminPolicy")]
         [HttpPut("{id}")]
         public async Task<IActionResult> PutBook(int id, BookDto bookDto)
         {
@@ -128,7 +128,7 @@ namespace LibraryApp.Controllers
 
             if (book.BorrowedAt != null && book.ReturnAt > DateTime.Now)
             {
-                return BadRequest("Книга уже взята и будет доступна после " + book.ReturnAt.ToShortDateString());
+                return BadRequest("Книга уже взята и будет доступна после " + book.ReturnAt?.ToShortDateString());
             }
 
             var userId = User.Identity.Name; // Берем имя пользователя (или ID) из токена, если используется аутентификация
@@ -145,8 +145,36 @@ namespace LibraryApp.Controllers
             await _unitOfWork.CompleteAsync();
 
             var bookDto = _mapper.Map<BookDto>(book); // Маппинг модели в DTO
-            return Ok($"{bookDto} Книга успешно взята на руки.");
+            return Ok("Книга успешно взята на руки.");
         }
+
+        //[Authorize(Policy = "UserPolicy")]
+        [HttpPost("{id}/return")]
+        public async Task<IActionResult> ReturnBook(int id)
+        {
+            var book = await _unitOfWork.Books.GetByIdAsync(id);
+
+            if (book == null)
+            {
+                throw new KeyNotFoundException("Книга с указанным ID не найдена.");
+            }
+
+            if (book.BorrowedByUserId == null)
+            {
+                return BadRequest("Эта книга не находится на руках у пользователя.");
+            }
+
+            // Сбрасываем информацию о заимствовании книги
+            book.BorrowedByUserId = null;
+            book.BorrowedAt = null;
+            book.ReturnAt = null;
+
+            _unitOfWork.Books.Update(book);
+            await _unitOfWork.CompleteAsync();
+
+            return Ok("Книга успешно возвращена.");
+        }
+
 
         [Authorize(Policy = "AdminPolicy")]
         [HttpPost("{id}/upload-image")]

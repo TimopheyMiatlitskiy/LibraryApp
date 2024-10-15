@@ -13,8 +13,8 @@
         public int AuthorId { get; set; } // Внешний ключ для связи с автором
         public Author? Author { get; set; } // Навигационное свойство
 
-        public DateTime ReturnAt { get; set; } // Дата возврата книги
-        public DateTime BorrowedAt { get; set; } // Дата когда взяли книгу
+        public DateTime? ReturnAt { get; set; } // Дата возврата книги
+        public DateTime? BorrowedAt { get; set; } // Дата когда взяли книгу
         public string? BorrowedByUserId { get; set; } // ID пользователя, взявшего книгу 
 
         public string? ImagePath { get; set; } // Путь к изображению книги
