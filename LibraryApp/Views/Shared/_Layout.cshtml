@@ -41,7 +41,7 @@
                         </li>
                     </ul>
                     <ul class="navbar-nav ml-auto">
-                        @if (User.Identity.IsAuthenticated)
+                        @if (User.Identity!.IsAuthenticated)
                         {
                             <li class="nav-item">
                                 @* Логика отображения иконки с инициалами пользователя *@
@@ -74,7 +74,6 @@
             @RenderBody()
         </main>
     </div>
-    @* ИЗМЕНИТЬ *@
     <footer class="border-top footer text-muted">
         <div class="container">
             &copy; 2024 - LibraryApp - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>

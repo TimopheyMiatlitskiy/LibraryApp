@@ -21,12 +21,14 @@ namespace LibraryApp.Repositories
 
         public async Task<Book> GetByIdAsync(int id)
         {
-            return await _context.Books.Include(b => b.Author).FirstOrDefaultAsync(b => b.Id == id);
+            var book = await _context.Books.Include(b => b.Author).FirstOrDefaultAsync(b => b.Id == id);
+            return book ?? throw new KeyNotFoundException("Книга с указанным ID не найдена.");
         }
 
         public async Task<Book> GetByISBNAsync(string isbn)
         {
-            return await _context.Books.Include(b => b.Author).FirstOrDefaultAsync(b => b.ISBN == isbn);
+            var book = await _context.Books.Include(b => b.Author).FirstOrDefaultAsync(b => b.ISBN == isbn);
+            return book ?? throw new KeyNotFoundException("Книга с указанным ISBN не найдена.");
         }
 
         public async Task AddAsync(Book book)

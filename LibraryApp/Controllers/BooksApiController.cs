@@ -22,7 +22,7 @@ namespace LibraryApp.Controllers
         }
 
         // GET: api/BooksApi
-        //[Authorize(Policy = "UserPolicy")]
+        [Authorize(Policy = "UserPolicy")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<BookDto>>> GetBooks(int pageNumber = 1, int pageSize = 10)
         {
@@ -41,7 +41,7 @@ namespace LibraryApp.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<BookDto>> GetBook(int id)
         {
-            var book = await _unitOfWork.Books.GetByIdAsync(id) ?? throw new KeyNotFoundException("Книга с указанным ID не найдена.");
+            var book = await _unitOfWork.Books.GetByIdAsync(id);
             var bookDto = _mapper.Map<BookDto>(book);
             return Ok(bookDto);
         }
@@ -51,14 +51,13 @@ namespace LibraryApp.Controllers
         [HttpGet("ISBN/{isbn}")]
         public async Task<ActionResult<BookDto>> GetBookByISBN(string isbn)
         {
-            var books = await _unitOfWork.Books.GetAllAsync();
-            var book = books.FirstOrDefault(b => b.ISBN == isbn) ?? throw new KeyNotFoundException("Книга с указанным ISBN не найдена.");
+            var book = await _unitOfWork.Books.GetAllAsync();
             var bookDto = _mapper.Map<BookDto>(book);
             return Ok(bookDto);
         }
 
         // PUT: api/BooksApi/5
-        //[Authorize(Policy = "AdminPolicy")]
+        [Authorize(Policy = "AdminPolicy")]
         [HttpPut("{id}")]
         public async Task<IActionResult> PutBook(int id, BookDto bookDto)
         {
@@ -90,7 +89,7 @@ namespace LibraryApp.Controllers
         }
 
         // POST: api/BooksApi
-        //[Authorize(Policy = "AdminPolicy")]
+        [Authorize(Policy = "AdminPolicy")]
         [HttpPost]
         public async Task<ActionResult<BookDto>> PostBook(BookDto bookDto)
         {
@@ -131,24 +130,20 @@ namespace LibraryApp.Controllers
                 return BadRequest("Книга уже взята и будет доступна после " + book.ReturnAt?.ToShortDateString());
             }
 
-            var userId = User.Identity.Name; // Берем имя пользователя (или ID) из токена, если используется аутентификация
+            var userId = User.Identity!.Name; // Берем имя пользователя (или ID) из токена, если используется аутентификация
             if (string.IsNullOrEmpty(userId))
-            {
+            {   
                 return Unauthorized("Необходимо быть авторизованным для взятия книги.");
             }
 
-            book.BorrowedByUserId = userId;
-            book.BorrowedAt = DateTime.Now;
-            book.ReturnAt = DateTime.Now.AddDays(14); // Установим срок возврата на 14 дней
-
-            _unitOfWork.Books.Update(book);
+            await _unitOfWork.Books.BorrowBookAsync(id, userId);
             await _unitOfWork.CompleteAsync();
 
-            var bookDto = _mapper.Map<BookDto>(book); // Маппинг модели в DTO
+            _mapper.Map<BookDto>(book); // Маппинг модели в DTO
             return Ok("Книга успешно взята на руки.");
         }
 
-        //[Authorize(Policy = "UserPolicy")]
+        [Authorize(Policy = "UserPolicy")]
         [HttpPost("{id}/return")]
         public async Task<IActionResult> ReturnBook(int id)
         {

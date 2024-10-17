@@ -20,7 +20,7 @@ namespace LibraryApp.Controllers
             _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
-
+         
         // GET: api/AuthorsApi
         [Authorize(Policy = "UserPolicy")]
         [HttpGet]
@@ -90,7 +90,7 @@ namespace LibraryApp.Controllers
         public async Task<ActionResult<AuthorDto>> PostAuthor(AuthorDto authorDto)
         {
             var author = _mapper.Map<Author>(authorDto);
-            await _unitOfWork.Authors.AddAsync(author);
+            _unitOfWork.Authors.Add(author);
             await _unitOfWork.CompleteAsync();
 
             var createdAuthorDto = _mapper.Map<AuthorDto>(author); // Маппинг модели в DTO

@@ -14,7 +14,7 @@ namespace LibraryApp.Repositories
             _context = context;
         }
 
-        public async Task<Author> GetByIdAsync(int id)
+        public async Task<Author?> GetByIdAsync(int id)
         {
             return await _context.Authors.Include(a => a.Books).FirstOrDefaultAsync(a => a.Id == id);
         }
@@ -24,9 +24,9 @@ namespace LibraryApp.Repositories
             return await _context.Authors.Include(a => a.Books).ToListAsync();
         }
 
-        public async Task AddAsync(Author author)
+        public void Add(Author author)
         {
-            await _context.Authors.AddAsync(author);
+            _context.Authors.Add(author);
         }
 
         public void Update(Author author)

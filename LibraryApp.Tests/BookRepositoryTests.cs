@@ -18,7 +18,7 @@ namespace LibraryApp.Tests
         }
 
         [Fact]
-        public async void AddBook_ShouldAddBookSuccessfully()
+        public async Task AddBook_ShouldAddBookSuccessfully()
         {
             // Arrange
             var context = GetInMemoryDbContext();
@@ -47,7 +47,7 @@ namespace LibraryApp.Tests
         }
 
         [Fact]
-        public async void GetBookById_ShouldReturnCorrectBook()
+        public async Task GetBookById_ShouldReturnCorrectBook()
         {
             // Arrange
             var context = GetInMemoryDbContext();

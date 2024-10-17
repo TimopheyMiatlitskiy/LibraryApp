@@ -2,21 +2,20 @@
 {
     public class Book
     {
-        public int Id { get; set; } // Уникальный идентификатор книги
-        public string ISBN { get; set; } // Международный стандартный книжный номер (ISBN)
-        public string Title { get; set; } // Название книги
-        public string Genre { get; set; } // Жанр книги
-        public string Description { get; set; } // Краткое описание книги
+        public int Id { get; set; }
+        public required string ISBN { get; set; }
+        public required string Title { get; set; }
+        public required string Genre { get; set; }
+        public required string Description { get; set; }
 
 
         // Связь с автором (один ко многим)
-        public int AuthorId { get; set; } // Внешний ключ для связи с автором
-        public Author? Author { get; set; } // Навигационное свойство
+        public int AuthorId { get; set; }
+        public required Author Author { get; set; }
+        public DateTime? ReturnAt { get; set; }
+        public DateTime? BorrowedAt { get; set; }
+        public string? BorrowedByUserId { get; set; } 
 
-        public DateTime? ReturnAt { get; set; } // Дата возврата книги
-        public DateTime? BorrowedAt { get; set; } // Дата когда взяли книгу
-        public string? BorrowedByUserId { get; set; } // ID пользователя, взявшего книгу 
-
-        public string? ImagePath { get; set; } // Путь к изображению книги
+        public string? ImagePath { get; set; }
     }
 }

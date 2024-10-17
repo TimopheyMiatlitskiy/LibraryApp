@@ -18,6 +18,7 @@ namespace LibraryApp
 {
     public class Program
     {
+        [Obsolete]
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
@@ -37,7 +38,7 @@ namespace LibraryApp
             // Конфигурация JWT
             var jwtSettings = builder.Configuration.GetSection("JwtSettings");
             var secretKey = jwtSettings["Secret"];
-            var key = Encoding.ASCII.GetBytes(secretKey);
+            var key = Encoding.ASCII.GetBytes(secretKey!);
 
             builder.Services.AddAuthentication(options =>
             {
@@ -53,7 +54,7 @@ namespace LibraryApp
                         ValidateIssuerSigningKey = true,
                         ValidIssuer = jwtSettings["Issuer"],
                         ValidAudience = jwtSettings["Audience"],
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Secret"]))
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Secret"]!))
                     };
                 });
 
@@ -126,13 +127,12 @@ namespace LibraryApp
                 app.UseHsts();
                 app.UseSwagger();
                 app.UseSwaggerUI();
-                app.MapGet("/", context =>
-                {
-                    context.Response.Redirect("/swagger");
-                    return Task.CompletedTask;
-                });
+                //app.MapGet("/", context =>
+                //{
+                //    context.Response.Redirect("/swagger");
+                //    return Task.CompletedTask;
+                //});
             } 
-
 
             using (var scope = app.Services.CreateScope())
             {
@@ -184,10 +184,7 @@ namespace LibraryApp
             app.UseAuthentication();  // Важно: сначала UseAuthentication
             app.UseAuthorization();   // Затем UseAuthorization
 
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-            });
+            app.MapControllers();
 
             app.UseStaticFiles(new StaticFileOptions
             {

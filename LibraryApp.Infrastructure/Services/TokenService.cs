@@ -2,6 +2,7 @@
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace LibraryApp.Services
@@ -19,7 +20,7 @@ namespace LibraryApp.Services
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
             var secretKey = jwtSettings["Secret"];
-            var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey));
+            var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey!));
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -38,8 +39,10 @@ namespace LibraryApp.Services
         public string GenerateRefreshToken()
         {
             var randomBytes = new byte[32];
-            using var rng = new System.Security.Cryptography.RNGCryptoServiceProvider();
-            rng.GetBytes(randomBytes);
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(randomBytes);
+            }
             return Convert.ToBase64String(randomBytes);
         }
 
@@ -52,7 +55,7 @@ namespace LibraryApp.Services
                 ValidateIssuer = true,
                 ValidIssuer = jwtSettings["Issuer"],
                 ValidAudience = jwtSettings["Audience"],
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtSettings["Secret"])),
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtSettings["Secret"]!)),
                 ValidateLifetime = false // Устанавливаем в false, чтобы получить истекший токен
             };
 
