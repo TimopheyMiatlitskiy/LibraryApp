@@ -13,14 +13,42 @@ using FluentValidation.AspNetCore;
 using LibraryApp.Validators;
 using LibraryApp.Interfaces;
 using LibraryApp.Mappings;
+using Microsoft.Data.SqlClient;
+using System.Data.SqlClient;
 
 namespace LibraryApp
 {
     public class Program
     {
+        private static void RestoreDatabaseIfNotExists()
+        {
+            string databaseName = "LibraryDb";
+            string connectionString = "Server=(localdb)\\mssqllocaldb;Integrated Security=True;";
+
+            using (var connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+
+                string checkDbQuery = $"SELECT database_id FROM sys.databases WHERE Name = '{databaseName}'";
+                using (var command = new SqlCommand(checkDbQuery, connection))
+                {
+                    var result = command.ExecuteScalar();
+                    if (result == null)
+                    {
+                        string restoreDbQuery = $"RESTORE DATABASE [{databaseName}] FROM DISK = 'D:\\VS2022 Projects\\LibraryApp.Infrastructure\\Data\\LibraryApp.bak' WITH MOVE 'LibraryDb' TO 'D:\\VS2022 Projects\\LibraryApp.Infrastructure\\Data\\LibraryApp.mdf', MOVE 'LibraryDb_log' TO 'D:\\VS2022 Projects\\LibraryApp.Infrastructure\\Data\\LibraryApp_log.ldf';";
+                        using (var restoreCommand = new SqlCommand(restoreDbQuery, connection))
+                        {
+                            restoreCommand.ExecuteNonQuery();
+                        }
+                    }
+                }
+            }
+        }
+
         [Obsolete]
         public static async Task Main(string[] args)
         {
+            RestoreDatabaseIfNotExists(); // Восстанавливаем базу данных, если она не существует
             var builder = WebApplication.CreateBuilder(args);
 
             // Регистрация DbContext
@@ -132,7 +160,7 @@ namespace LibraryApp
                 //    context.Response.Redirect("/swagger");
                 //    return Task.CompletedTask;
                 //});
-            } 
+            }
 
             using (var scope = app.Services.CreateScope())
             {
