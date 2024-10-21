@@ -34,4 +34,10 @@
     <ProjectReference Include="..\LibraryApp.Infrastructure\LibraryApp.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Database\LibraryDb.mdf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
