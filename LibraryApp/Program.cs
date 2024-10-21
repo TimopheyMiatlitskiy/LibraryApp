@@ -115,9 +115,12 @@ namespace LibraryApp
 
             //FluentValidation
             builder.Services.AddControllers()
-                .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<BookValidator>());
-            builder.Services.AddControllers()
-                .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<AuthorValidator>());
+                .AddFluentValidation(fv =>
+                {
+                    fv.RegisterValidatorsFromAssemblyContaining<BookValidator>();
+                    fv.RegisterValidatorsFromAssemblyContaining<AuthorValidator>();
+                });
+
 
             var app = builder.Build();
 
@@ -178,6 +181,13 @@ namespace LibraryApp
 
             app.UseHttpsRedirection();
 
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = new PhysicalFileProvider(
+                Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")),
+                RequestPath = ""
+            });
+
             app.UseRouting();
 
             app.UseCors();
@@ -185,13 +195,6 @@ namespace LibraryApp
             app.UseAuthorization();   // Затем UseAuthorization
 
             app.MapControllers();
-
-            app.UseStaticFiles(new StaticFileOptions
-            {
-                FileProvider = new PhysicalFileProvider(
-                Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")),
-                RequestPath = ""
-            });
 
             app.MapDefaultControllerRoute();
 

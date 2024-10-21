@@ -74,7 +74,7 @@ namespace LibraryApp.Controllers
 
         // POST: Account/Logout 
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        //[ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
