@@ -35,10 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Data\LibraryDb.mdf">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Data\LibraryDb_log.ldf">
+    <None Update="Database\LibraryDb.mdf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
