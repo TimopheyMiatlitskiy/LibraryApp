@@ -29,7 +29,7 @@ namespace LibraryApp.Data
 
                 entity.Property(b => b.ISBN)
                       .IsRequired()
-                      .HasMaxLength(13);
+                      .HasMaxLength(17);
 
                 entity.Property(b => b.Genre)
                       .HasMaxLength(100);

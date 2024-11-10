@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
-using System.Security.Claims;
-using LibraryApp.Services;
+using LibraryApp.UseCases;
+using LibraryApp.DTOs;
+using Microsoft.AspNetCore.Identity.Data;
 
 namespace LibraryApp.Controllers
 {
@@ -9,95 +10,50 @@ namespace LibraryApp.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly TokenService _tokenService;
+        private readonly AuthUseCases _authUseCases;
 
-        public AuthController(UserManager<IdentityUser> userManager, TokenService tokenService)
+        public AuthController(AuthUseCases authUseCases)
         {
-            _userManager = userManager;
-            _tokenService = tokenService;
+            _authUseCases = authUseCases;
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        public async Task<IActionResult> Login([FromBody] DTOs.LoginRequest request)
         {
-            var user = await _userManager.FindByEmailAsync(request.Email);
-            if (user == null || !await _userManager.CheckPasswordAsync(user, request.Password))
+            var tokens = await _authUseCases.LoginAsync(request);
+
+            if (tokens == null)
             {
                 return Unauthorized("Invalid credentials");
             }
 
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.UserName!),
-                new Claim(ClaimTypes.NameIdentifier, user.Id)
-            };
-
-            var roles = await _userManager.GetRolesAsync(user);
-            claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
-
-            var accessToken = _tokenService.GenerateAccessToken(claims);
-            var refreshToken = _tokenService.GenerateRefreshToken();
-
-            // Сохраните RefreshToken в базе данных или кэшировании
-            return Ok(new { accessToken, refreshToken });
+            return Ok(new { accessToken = tokens.Value.accessToken, refreshToken = tokens.Value.refreshToken });
         }
-        
+
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        public async Task<IActionResult> Register([FromBody] DTOs.RegisterRequest request)
         {
-            if (request.Password != request.ConfirmPassword)
+            try
             {
-                return BadRequest("Пароли не совпадают");
+                var result = await _authUseCases.RegisterAsync(request);
+                if (!result.Succeeded)
+                {
+                    return BadRequest(result.Errors);
+                }
+
+                return Ok("Регистрация прошла успешно");
             }
-
-            var user = new IdentityUser
+            catch (ArgumentException ex)
             {
-                UserName = request.Email,
-                Email = request.Email
-            };
-
-            var result = await _userManager.CreateAsync(user, request.Password);
-
-            if (!result.Succeeded)
-            {
-                return BadRequest(result.Errors);
+                return BadRequest(ex.Message);
             }
-
-            // Добавим пользователя в роль "User" по умолчанию
-            await _userManager.AddToRoleAsync(user, "User");
-
-            return Ok("Регистрация прошла успешно");
         }
-        [HttpPost("ResetPassword")]
+
+        [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword(string email, string newPassword)
         {
-            var user = await _userManager.FindByEmailAsync(email);
-            if (user == null)
-            {
-                return NotFound("Пользователь не найден.");
-            }
-
-            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
-
-            if (result.Succeeded)
-            {
-                return Ok("Пароль успешно сброшен.");
-            }
-
-            return BadRequest("Ошибка при сбросе пароля.");
+            var success = await _authUseCases.ResetPasswordAsync(email, newPassword);
+            return success ? Ok("Пароль успешно сброшен.") : NotFound("Пользователь не найден.");
         }
-    }
-    public class LoginRequest
-    {
-        public required string Email { get; set; }
-        public required string Password { get; set; }
-    }
-    public class RegisterRequest
-    {
-        public required string Email { get; set; }
-        public required string Password { get; set; }
-        public required string ConfirmPassword { get; set; }
     }
 }

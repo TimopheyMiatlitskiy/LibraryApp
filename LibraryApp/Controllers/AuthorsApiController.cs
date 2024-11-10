@@ -1,10 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using LibraryApp.Models;
+﻿using LibraryApp.DTOs;
+using LibraryApp.UseCases;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
-using LibraryApp.DTOs;
-using AutoMapper;
-using LibraryApp.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryApp.Controllers
 {
@@ -12,111 +9,75 @@ namespace LibraryApp.Controllers
     [ApiController]
     public class AuthorsApiController : ControllerBase
     {
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly IMapper _mapper;
+        private readonly AuthorsUseCases _authorsUseCases;
 
-        public AuthorsApiController(IUnitOfWork unitOfWork, IMapper mapper)
+        public AuthorsApiController(AuthorsUseCases authorsUseCases)
         {
-            _unitOfWork = unitOfWork;
-            _mapper = mapper;
+            _authorsUseCases = authorsUseCases;
         }
-         
-        // GET: api/AuthorsApi
+
         [Authorize(Policy = "UserPolicy")]
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<AuthorDto>>> GetAuthors(int pageNumber = 1, int pageSize = 10)
+        public async Task<IActionResult> GetAuthors(int pageNumber = 1, int pageSize = 10)
         {
-            var authors = await _unitOfWork.Authors.GetAllAsync();
-            var paginatedAuthors = authors
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-
-            var AuthorDtos = _mapper.Map<IEnumerable<AuthorDto>>(paginatedAuthors);
-            return Ok(AuthorDtos);
+            var authors = await _authorsUseCases.GetAuthorsAsync(pageNumber, pageSize);
+            return Ok(authors);
         }
-        
-        // GET: api/AuthorsApi/5
+
         [Authorize(Policy = "UserPolicy")]
         [HttpGet("{id}")]
-        public async Task<ActionResult<AuthorDto>> GetAuthor(int id)
+        public async Task<IActionResult> GetAuthorById(int id)
         {
-            var author = await _unitOfWork.Authors.GetByIdAsync(id);
-
-            if (author == null)
-            {
-                throw new KeyNotFoundException("Автор с указанным ID не найден.");
-            }
-
-            var authorDto = _mapper.Map<AuthorDto>(author);
-            return Ok(authorDto);
+            var author = await _authorsUseCases.GetAuthorByIdAsync(id);
+            return author == null ? NotFound("Автор не найден.") : Ok(author);
         }
 
-        // PUT: api/AuthorsApi/5
+        [Authorize(Policy = "AdminPolicy")]
+        [HttpPost]
+        public async Task<IActionResult> CreateAuthor([FromBody] AuthorDto authorDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var createdAuthor = await _authorsUseCases.CreateAuthorAsync(authorDto);
+            return CreatedAtAction(nameof(GetAuthorById), new { id = createdAuthor.Id }, createdAuthor);
+        }
+
         [Authorize(Policy = "AdminPolicy")]
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutAuthor(int id, AuthorDto authorDto)
+        public async Task<IActionResult> UpdateAuthor(int id, [FromBody] AuthorDto authorDto)
         {
-            if (id != authorDto.Id)
-            {
-                return BadRequest();
-            }
-
-            var author = _mapper.Map<Author>(authorDto);
-            _unitOfWork.Authors.Update(author);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
             try
             {
-                await _unitOfWork.CompleteAsync();
+                await _authorsUseCases.UpdateAuthorAsync(id, authorDto);
+                return NoContent();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (ArgumentException ex)
             {
-                if (!await AuthorExists(id))
-                {
-                    throw new KeyNotFoundException("Автор с указанным ID не найден.");
-                }
-                else
-                {
-                    throw;
-                }
+                return BadRequest(ex.Message);
             }
-
-            return NoContent();
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
         }
 
-        // POST: api/AuthorsApi
-        [Authorize(Policy = "AdminPolicy")]
-        [HttpPost]
-        public async Task<ActionResult<AuthorDto>> PostAuthor(AuthorDto authorDto)
-        {
-            var author = _mapper.Map<Author>(authorDto);
-            _unitOfWork.Authors.Add(author);
-            await _unitOfWork.CompleteAsync();
-
-            var createdAuthorDto = _mapper.Map<AuthorDto>(author); // Маппинг модели в DTO
-            return CreatedAtAction(nameof(GetAuthor), new { id = author.Id }, createdAuthorDto);
-        }
-
-        // DELETE: api/AuthorsApi/5
         [Authorize(Policy = "AdminPolicy")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAuthor(int id)
         {
-            var author = await _unitOfWork.Authors.GetByIdAsync(id);
-            if (author == null)
+            try
             {
-                throw new KeyNotFoundException("Автор с указанным ID не найден.");
+                await _authorsUseCases.DeleteAuthorAsync(id);
+                return NoContent();
             }
-
-            _unitOfWork.Authors.Delete(author);
-            await _unitOfWork.CompleteAsync();
-
-            return NoContent();
-        }
-
-        private async Task<bool> AuthorExists(int id)
-        {
-            return await _unitOfWork.Authors.GetByIdAsync(id) != null;
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
         }
     }
 }

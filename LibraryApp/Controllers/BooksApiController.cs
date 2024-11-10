@@ -1,10 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using LibraryApp.Models;
+﻿using LibraryApp.DTOs;
+using LibraryApp.UseCases;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
-using AutoMapper;
-using LibraryApp.DTOs;
-using LibraryApp.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryApp.Controllers
 {
@@ -12,205 +9,144 @@ namespace LibraryApp.Controllers
     [ApiController]
     public class BooksApiController : ControllerBase
     {
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly IMapper _mapper;
+        private readonly BooksUseCases _booksUseCases;
 
-        public BooksApiController(IUnitOfWork unitOfWork, IMapper mapper)
+        public BooksApiController(BooksUseCases booksUseCases)
         {
-            _unitOfWork = unitOfWork;
-            _mapper = mapper;
+            _booksUseCases = booksUseCases;
         }
 
-        // GET: api/BooksApi
         [Authorize(Policy = "UserPolicy")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<BookDto>>> GetBooks(int pageNumber = 1, int pageSize = 10)
         {
-            var books = await _unitOfWork.Books.GetAllAsync();
-            var paginatedBooks = books
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-
-            var bookDtos = _mapper.Map<IEnumerable<BookDto>>(paginatedBooks);
-            return Ok(bookDtos);
+            var books = await _booksUseCases.GetBooksAsync(pageNumber, pageSize);
+            return Ok(books);
         }
 
-        // GET: api/BooksApi/5
         [Authorize(Policy = "UserPolicy")]
         [HttpGet("{id}")]
-        public async Task<ActionResult<BookDto>> GetBook(int id)
+        public async Task<IActionResult> GetBookById(int id)
         {
-            var book = await _unitOfWork.Books.GetByIdAsync(id);
-            var bookDto = _mapper.Map<BookDto>(book);
-            return Ok(bookDto);
+            var book = await _booksUseCases.GetBookByIdAsync(id);
+            if (book == null)
+                return NotFound("Книга не найдена.");
+            return Ok(book);
         }
 
-        // GET: api/BooksApi/ISBN/978-3-16-148410-0
         [Authorize(Policy = "UserPolicy")]
-        [HttpGet("ISBN/{isbn}")]
-        public async Task<ActionResult<BookDto>> GetBookByISBN(string isbn)
+        [HttpGet("isbn/{isbn}")]
+        public async Task<IActionResult> GetBookByISBN(string isbn)
         {
-            var book = await _unitOfWork.Books.GetAllAsync();
-            var bookDto = _mapper.Map<BookDto>(book);
-            return Ok(bookDto);
+            var book = await _booksUseCases.GetBookByISBNAsync(isbn);
+            if (book == null)
+                return NotFound("Книга не найдена.");
+            return Ok(book);
         }
 
-        // PUT: api/BooksApi/5
+        [Authorize(Policy = "AdminPolicy")]
+        [HttpPost]
+        public async Task<IActionResult> CreateBook([FromBody] BookDto bookDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var createdBook = await _booksUseCases.CreateBookAsync(bookDto);
+            return CreatedAtAction(nameof(GetBookById), new { id = createdBook.Id }, createdBook);
+        }
+
         [Authorize(Policy = "AdminPolicy")]
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutBook(int id, BookDto bookDto)
+        public async Task<IActionResult> UpdateBook(int id, [FromBody] BookDto bookDto)
         {
-            if (id != bookDto.Id)
-            {
-                return BadRequest();
-            }
-
-            var book = _mapper.Map<Book>(bookDto);
-            _unitOfWork.Books.Update(book);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
             try
             {
-                await _unitOfWork.CompleteAsync();
+                await _booksUseCases.UpdateBookAsync(id, bookDto);
+                return NoContent();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (ArgumentException ex)
             {
-                if (!await BookExists(id))
-                {
-                    throw new KeyNotFoundException("Книга с указанным ID не найдена.");
-                }
-                else
-                {
-                    throw;
-                }
+                return BadRequest(ex.Message);
             }
-
-            return NoContent();
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
         }
 
-        // POST: api/BooksApi
-        [Authorize(Policy = "AdminPolicy")]
-        [HttpPost]
-        public async Task<ActionResult<BookDto>> PostBook(BookDto bookDto)
-        {
-            var book = _mapper.Map<Book>(bookDto); // Маппинг DTO в модель
-            await _unitOfWork.Books.AddAsync(book);
-            await _unitOfWork.CompleteAsync();
-
-            var createdBookDto = _mapper.Map<BookDto>(book); // Маппинг модели в DTO
-            return CreatedAtAction(nameof(GetBook), new { id = book.Id }, createdBookDto);
-        }
-
-        // DELETE: api/BooksApi/5
         [Authorize(Policy = "AdminPolicy")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBook(int id)
         {
-            var book = await _unitOfWork.Books.GetByIdAsync(id) ?? throw new KeyNotFoundException("Книга с указанным ID не найдена.");
-
-            _unitOfWork.Books.Delete(book);
-            await _unitOfWork.CompleteAsync();
-
-            return NoContent();
+            try
+            {
+                await _booksUseCases.DeleteBookAsync(id);
+                return NoContent();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
         }
 
         [Authorize(Policy = "UserPolicy")]
         [HttpPost("{id}/borrow")]
-        public async Task<IActionResult> BorrowBook(int id)
+        public async Task<IActionResult> BorrowBook(int id, [FromQuery] string userId)
         {
-            var book = await _unitOfWork.Books.GetByIdAsync(id);
-
-            if (book == null)
+            try
             {
-                throw new KeyNotFoundException("Книга не найдена.");
+                var message = await _booksUseCases.BorrowBookAsync(id, userId);
+                return Ok(new { message });
             }
-
-            if (book.BorrowedAt != null && book.ReturnAt > DateTime.Now)
+            catch (KeyNotFoundException ex)
             {
-                return BadRequest("Книга уже взята и будет доступна после " + book.ReturnAt?.ToShortDateString());
+                return NotFound(ex.Message);
             }
-
-            var userId = User.Identity!.Name; // Берем имя пользователя (или ID) из токена, если используется аутентификация
-            if (string.IsNullOrEmpty(userId))
-            {   
-                return Unauthorized("Необходимо быть авторизованным для взятия книги.");
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
             }
-
-            await _unitOfWork.Books.BorrowBookAsync(id, userId);
-            await _unitOfWork.CompleteAsync();
-
-            _mapper.Map<BookDto>(book); // Маппинг модели в DTO
-            return Ok("Книга успешно взята на руки.");
         }
 
         [Authorize(Policy = "UserPolicy")]
         [HttpPost("{id}/return")]
         public async Task<IActionResult> ReturnBook(int id)
         {
-            var book = await _unitOfWork.Books.GetByIdAsync(id);
-
-            if (book == null)
+            try
             {
-                throw new KeyNotFoundException("Книга с указанным ID не найдена.");
+                var message = await _booksUseCases.ReturnBookAsync(id);
+                return Ok(new { message });
             }
-
-            if (book.BorrowedByUserId == null)
+            catch (KeyNotFoundException ex)
             {
-                return BadRequest("Эта книга не находится на руках у пользователя.");
+                return NotFound(ex.Message);
             }
-
-            // Сбрасываем информацию о заимствовании книги
-            book.BorrowedByUserId = null;
-            book.BorrowedAt = null;
-            book.ReturnAt = null;
-
-            _unitOfWork.Books.Update(book);
-            await _unitOfWork.CompleteAsync();
-
-            return Ok("Книга успешно возвращена.");
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
-
 
         [Authorize(Policy = "AdminPolicy")]
         [HttpPost("{id}/upload-image")]
-        public async Task<IActionResult> UploadImage(int id, IFormFile image)
+        public async Task<IActionResult> UploadBookImage(int id, IFormFile imageFile)
         {
-            var book = await _unitOfWork.Books.GetByIdAsync(id);
-
-            if (book == null)
+            try
             {
-                throw new KeyNotFoundException("Книга не найдена.");
+                var imageUrl = await _booksUseCases.UploadBookImageAsync(id, imageFile);
+                return Ok(new { imageUrl });
             }
-
-            if (image == null || image.Length == 0)
+            catch (KeyNotFoundException ex)
             {
-                return BadRequest("Пожалуйста, выберите файл для загрузки.");
+                return NotFound(ex.Message);
             }
-
-            // Создаем путь к файлу
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
-            Directory.CreateDirectory(uploadsFolder); // Убедимся, что папка существует
-
-            var filePath = Path.Combine(uploadsFolder, $"{Guid.NewGuid()}_{image.FileName}");
-
-            // Сохраняем файл на сервере
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            catch (ArgumentException ex)
             {
-                await image.CopyToAsync(fileStream);
+                return BadRequest(ex.Message);
             }
-
-            // Сохраняем путь к изображению в базе данных
-            book.ImagePath = filePath;
-            _unitOfWork.Books.Update(book);
-            await _unitOfWork.CompleteAsync();
-
-            var bookDto = _mapper.Map<BookDto>(book); // Маппинг модели в DTO
-            return Ok(new { bookDto.ImagePath });
-        }
-
-        private async Task<bool> BookExists(int id)
-        {
-            return await _unitOfWork.Books.GetByIdAsync(id) != null;
         }
     }
 }

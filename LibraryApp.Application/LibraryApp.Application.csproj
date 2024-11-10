@@ -9,10 +9,12 @@
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="13.0.1" />
     <PackageReference Include="FluentValidation" Version="11.10.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="5.0.17" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\LibraryApp.Core\LibraryApp.Core.csproj" />
+    <ProjectReference Include="..\LibraryApp.Infrastructure\LibraryApp.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

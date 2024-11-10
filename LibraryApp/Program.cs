@@ -13,6 +13,8 @@ using FluentValidation.AspNetCore;
 using LibraryApp.Validators;
 using LibraryApp.Interfaces;
 using LibraryApp.Mappings;
+using LibraryApp.Infrastructure;
+using LibraryApp.UseCases;
 
 namespace LibraryApp
 {
@@ -31,6 +33,9 @@ namespace LibraryApp
                 .AddEntityFrameworkStores<LibraryContext>()
                 .AddDefaultTokenProviders();
 
+            // Регистрация DataSeeder
+            builder.Services.AddTransient<DataSeeder>();
+
             // Add services to the container.
             builder.Services.AddControllersWithViews();
             builder.Services.AddEndpointsApiExplorer();
@@ -45,18 +50,18 @@ namespace LibraryApp
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             }).AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateAudience = true,
-                        ValidateIssuer = true,
-                        ValidateLifetime = true,
-                        ValidateIssuerSigningKey = true,
-                        ValidIssuer = jwtSettings["Issuer"],
-                        ValidAudience = jwtSettings["Audience"],
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Secret"]!))
-                    };
-                });
+                    ValidateAudience = true,
+                    ValidateIssuer = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtSettings["Issuer"],
+                    ValidAudience = jwtSettings["Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Secret"]!))
+                };
+            });
 
             builder.Services.AddSwaggerGen(c =>
             {
@@ -78,10 +83,10 @@ namespace LibraryApp
                         new OpenApiSecurityScheme
                         {
                             Reference = new OpenApiReference
-                                {
-                                    Type = ReferenceType.SecurityScheme,
-                                    Id = "Bearer"
-                                }
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
                         },
                         Array.Empty<string>()
                     }
@@ -90,20 +95,15 @@ namespace LibraryApp
 
             builder.Services.AddAuthorization(options =>
             {
-                options.AddPolicy("AdminPolicy", policy =>
-                    policy.RequireRole("Admin"));
-
-                options.AddPolicy("UserPolicy", policy =>
-                    policy.RequireRole("User"));
+                options.AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin"));
+                options.AddPolicy("UserPolicy", policy => policy.RequireRole("Admin", "User"));
             });
 
+            // Регистрация служб
             builder.Services.AddSingleton<TokenService>();
-
-            builder.Services.AddLogging(config =>
-            {
-                config.AddConsole();
-                config.AddDebug();
-            });
+            builder.Services.AddTransient<AuthUseCases>();
+            builder.Services.AddTransient<BooksUseCases>();
+            builder.Services.AddTransient<AuthorsUseCases>();
 
             //UnitOfWork
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -121,7 +121,6 @@ namespace LibraryApp
                     fv.RegisterValidatorsFromAssemblyContaining<AuthorValidator>();
                 });
 
-
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())
@@ -130,53 +129,12 @@ namespace LibraryApp
                 app.UseHsts();
                 app.UseSwagger();
                 app.UseSwaggerUI();
-                //app.MapGet("/", context =>
-                //{
-                //    context.Response.Redirect("/swagger");
-                //    return Task.CompletedTask;
-                //});
             }
 
             using (var scope = app.Services.CreateScope())
             {
-                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-
-                // Проверяем, существует ли роль "Admin"
-                if (!await roleManager.RoleExistsAsync("Admin"))
-                {
-                    await roleManager.CreateAsync(new IdentityRole("Admin"));
-                }
-
-                // Проверяем, существует ли роль "User"
-                if (!await roleManager.RoleExistsAsync("User"))
-                {
-                    await roleManager.CreateAsync(new IdentityRole("User"));
-                }
-                // Назначаем роль "User" для каждого пользователя, который её не имеет
-                var users = await userManager.Users.ToListAsync();
-                foreach (var user in users)
-                {
-                    if (!await userManager.IsInRoleAsync(user, "User"))
-                    {
-                        await userManager.AddToRoleAsync(user, "User");
-                    }
-                }
-
-                // Создаем администратора, если его еще нет
-                var adminEmail = "admin@libraryapp.com";
-                var adminUser = await userManager.FindByEmailAsync(adminEmail);
-
-                if (adminUser == null)
-                {
-                    adminUser = new IdentityUser { UserName = adminEmail, Email = adminEmail };
-                    var result = await userManager.CreateAsync(adminUser, "Admin@1234");
-
-                    if (result.Succeeded)
-                    {
-                        await userManager.AddToRoleAsync(adminUser, "Admin");
-                    }
-                }
+                var dataSeeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
+                await dataSeeder.SeedAsync();
             }
 
             app.UseHttpsRedirection();
@@ -184,18 +142,17 @@ namespace LibraryApp
             app.UseStaticFiles(new StaticFileOptions
             {
                 FileProvider = new PhysicalFileProvider(
-                Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")),
+                    Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")),
                 RequestPath = ""
             });
 
             app.UseRouting();
 
             app.UseCors();
-            app.UseAuthentication();  // Важно: сначала UseAuthentication
-            app.UseAuthorization();   // Затем UseAuthorization
+            app.UseAuthentication();
+            app.UseAuthorization();
 
             app.MapControllers();
-
             app.MapDefaultControllerRoute();
 
             app.Run();

@@ -70,10 +70,6 @@ namespace LibraryApp.Middleware
 
                 await context.Response.WriteAsync(JsonSerializer.Serialize(response));
             }
-            //else
-            //{
-            //    _logger.LogWarning("Response has already started. Cannot modify headers.");
-            //}
         }
     }
 

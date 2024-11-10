@@ -35,11 +35,14 @@ namespace LibraryApp.Tests
                 ISBN = "123-4567890123",
                 Genre = "Fiction",
                 Description = "A test book",
-                AuthorId = author.Id
+                AuthorId = author.Id,
+                Author = author
             };
 
             // Act
-            await bookRepository.AddAsync(newBook);
+            bookRepository.Add(newBook);
+            await context.SaveChangesAsync();
+
             var books = await bookRepository.GetAllAsync();
 
             // Assert
@@ -64,15 +67,17 @@ namespace LibraryApp.Tests
                 ISBN = "123-4567890123",
                 Genre = "Fiction",
                 Description = "A test book",
-                AuthorId = author.Id
+                AuthorId = author.Id,
+                Author = author
             };
-            await bookRepository.AddAsync(book);
+            bookRepository.Add(book);
+            await context.SaveChangesAsync();
 
             // Act
             var result = await bookRepository.GetByIdAsync(book.Id);
 
             // Assert
-            Assert.Equal(book.Title, result.Title);
+            Assert.Equal(book.Title, result!.Title);
             Assert.Equal(book.ISBN, result.ISBN);
         }
     }

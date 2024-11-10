@@ -19,23 +19,19 @@ namespace LibraryApp.Repositories
             return await _context.Books.Include(b => b.Author).ToListAsync();
         }
 
-        public async Task<Book> GetByIdAsync(int id)
+        public async Task<Book?> GetByIdAsync(int id)
         {
-            var book = await _context.Books.Include(b => b.Author).FirstOrDefaultAsync(b => b.Id == id);
-            return book ?? throw new KeyNotFoundException("Книга с указанным ID не найдена.");
+            return await _context.Books.Include(b => b.Author).FirstOrDefaultAsync(b => b.Id == id);
         }
 
-        public async Task<Book> GetByISBNAsync(string isbn)
+        public async Task<Book?> GetByISBNAsync(string isbn)
         {
-            var book = await _context.Books.Include(b => b.Author).FirstOrDefaultAsync(b => b.ISBN == isbn);
-            return book ?? throw new KeyNotFoundException("Книга с указанным ISBN не найдена.");
+            return await _context.Books.Include(b => b.Author).FirstOrDefaultAsync(b => b.ISBN == isbn);
         }
 
-        public async Task AddAsync(Book book)
+        public void Add(Book book)
         {
-            //await _context.Books.AddAsync(book);
             _context.Books.Add(book);
-            await _context.SaveChangesAsync();
         }
 
         public void Update(Book book)
@@ -48,28 +44,18 @@ namespace LibraryApp.Repositories
             _context.Books.Remove(book);
         }
 
-        public async Task BorrowBookAsync(int bookId, string userId)
+        public void BorrowBookAsync(Book book, string userId)
         {
-            var book = await GetByIdAsync(bookId);
-            if (book != null)
-            {
-                book.BorrowedByUserId = userId;
-                book.BorrowedAt = DateTime.Now;
-                book.ReturnAt = DateTime.Now.AddDays(14); // Устанавливаем срок возврата на 14 дней
-                _context.Books.Update(book);
-                await _context.SaveChangesAsync();
-            }
+            book.BorrowedByUserId = userId;
+            book.BorrowedAt = DateTime.Now;
+            book.ReturnAt = DateTime.Now.AddDays(14);
+            _context.Books.Update(book);
         }
 
-        public async Task AddBookImageAsync(int bookId, string imagePath)
+        public void AddBookImageAsync(Book book, string imagePath)
         {
-            var book = await GetByIdAsync(bookId);
-            if (book != null)
-            {
-                book.ImagePath = imagePath;
-                _context.Books.Update(book);
-                await _context.SaveChangesAsync();
-            }
+            book.ImagePath = imagePath;
+            _context.Books.Update(book);
         }
 
     }
