@@ -18,6 +18,8 @@ using Microsoft.EntityFrameworkCore.Design;
 using System.Security.Claims;
 using LibraryApp.UseCases.Facades;
 using LibraryApp.Models;
+using Microsoft.AspNetCore.Mvc;
+
 
 namespace LibraryApp
 {
@@ -123,11 +125,14 @@ namespace LibraryApp
 
             //FluentValidation
             builder.Services.AddControllers()
-                .AddFluentValidation(fv =>
-                {
-                    fv.RegisterValidatorsFromAssemblyContaining<BookValidator>();
-                    fv.RegisterValidatorsFromAssemblyContaining<AuthorValidator>();
-                });
+            .AddFluentValidation(fv =>
+            {
+                fv.RegisterValidatorsFromAssemblyContaining<BookValidator>();
+                fv.RegisterValidatorsFromAssemblyContaining<AuthorValidator>();
+            });
+
+            builder.Services.Configure<ApiBehaviorOptions>(options
+                => options.SuppressModelStateInvalidFilter = true);
 
             var app = builder.Build();
 

@@ -17,6 +17,9 @@ namespace LibraryApp.UseCases.Books
 
         public async Task DeleteBookAsync(int id, ClaimsPrincipal user)
         {
+            if (id > int.MaxValue)
+                throw new BadRequestException("Некорректный идентификатор.");
+
             if (!user.IsInRole("Admin"))
                 throw new ForbiddenException("У вас нет доступа к этому ресурсу.");
 

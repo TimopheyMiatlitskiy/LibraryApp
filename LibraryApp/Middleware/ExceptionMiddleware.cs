@@ -30,6 +30,10 @@ namespace LibraryApp.Middleware
                 {
                     throw new UnauthorizedAccessException("Неавторизованный доступ.");
                 }
+                else if (context.Response.StatusCode == StatusCodes.Status400BadRequest)
+                {
+                    throw new BadRequestException("Некорректный запрос.");
+                }
             }
             catch (Exception ex)
             {
@@ -38,11 +42,11 @@ namespace LibraryApp.Middleware
             }
         }
 
-
         private static Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
             var statusCode = HttpStatusCode.InternalServerError; // По умолчанию 500
             var errorMessage = "Что-то пошло не так.";
+            var errors = new Dictionary<string, string[]>();
 
             switch (exception)
             {
@@ -56,9 +60,13 @@ namespace LibraryApp.Middleware
                     errorMessage = exception.Message;
                     break;
 
-                case BadRequestException:
+                case BadRequestException badRequestException:
                     statusCode = HttpStatusCode.BadRequest;
-                    errorMessage = exception.Message;
+                    errorMessage = badRequestException.Message;
+                    if (context.Items["ModelStateErrors"] is Dictionary<string, string[]> modelStateErrors)
+                    {
+                        errors = modelStateErrors;
+                    }
                     break;
 
                 case UnauthorizedException:
@@ -87,6 +95,7 @@ namespace LibraryApp.Middleware
             {
                 StatusCode = context.Response.StatusCode,
                 Message = errorMessage,
+                Errors = errors.Count > 0 ? errors : null
             };
 
             return context.Response.WriteAsync(JsonSerializer.Serialize(response));

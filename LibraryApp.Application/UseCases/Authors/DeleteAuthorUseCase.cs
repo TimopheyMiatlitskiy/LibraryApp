@@ -17,6 +17,9 @@ namespace LibraryApp.UseCases.Authors
 
         public async Task DeleteAuthorAsync(int id, ClaimsPrincipal user)
         {
+            if (id <= 0 || id > int.MaxValue)
+                throw new BadRequestException("Некорректный идентификатор.");
+
             if (!user.IsInRole("Admin"))
                 throw new ForbiddenException("У вас нет доступа к этому ресурсу.");
 

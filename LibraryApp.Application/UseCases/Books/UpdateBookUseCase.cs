@@ -21,6 +21,9 @@ namespace LibraryApp.UseCases.Books
 
         public async Task UpdateBookAsync(UpdateBookDto request, ClaimsPrincipal user)
         {
+            if (request.Id > int.MaxValue)
+                throw new BadRequestException("Некорректный идентификатор.");
+
             if (!user.IsInRole("Admin"))
                 throw new ForbiddenException("У вас нет доступа к этому ресурсу.");
 

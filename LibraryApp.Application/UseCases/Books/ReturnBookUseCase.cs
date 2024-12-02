@@ -21,8 +21,12 @@ namespace LibraryApp.UseCases.Books
 
         public async Task ReturnBookAsync(int bookId, string userId)
         {
+            if (bookId > int.MaxValue)
+                throw new BadRequestException("Некорректный идентификатор.");
+
             var user = await _userRepository.GetByIdAsync(userId)
                 ?? throw new NotFoundException("Пользователь не найден.");
+
             var book = await _bookRepository.GetByIdAsync(bookId)
                 ?? throw new NotFoundException("Книга не найдена.");
 

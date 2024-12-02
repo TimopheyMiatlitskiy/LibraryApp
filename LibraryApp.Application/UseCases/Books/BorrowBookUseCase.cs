@@ -21,6 +21,9 @@ namespace LibraryApp.UseCases.Books
 
         public async Task BorrowBookAsync(int bookId, string userId)
         {
+            if (bookId > int.MaxValue)
+                throw new BadRequestException("Некорректный идентификатор.");
+
             _ = await _userRepository.GetByIdAsync(userId)
                 ?? throw new NotFoundException("Пользователь не найден.");
 
