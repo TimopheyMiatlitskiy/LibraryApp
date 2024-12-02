@@ -14,9 +14,12 @@ namespace LibraryApp.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<Book>> GetAllAsync()
+        public async Task<IEnumerable<Book>> GetAllAsync(int pageNumber, int pageSize)
         {
-            return await _context.Books.Include(b => b.Author).ToListAsync();
+            return await _context.Books.Include(b => b.Author)
+                                       .Skip((pageNumber - 1) * pageSize)
+                                       .Take(pageSize)
+                                       .ToListAsync();
         }
 
         public async Task<Book?> GetByIdAsync(int id)
@@ -56,6 +59,13 @@ namespace LibraryApp.Repositories
         {
             book.ImagePath = imagePath;
             _context.Books.Update(book);
+        }
+
+        public async Task<IEnumerable<Book>> GetBooksByBorrowerIdAsync(string borrowerId)
+        {
+            return await _context.Books
+                .Where(b => b.BorrowedByUserId == borrowerId)
+                .ToListAsync();
         }
 
     }

@@ -12,9 +12,9 @@ namespace LibraryApp.Controllers
     public class BooksController : Controller
     {
         private readonly LibraryContext _context;
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public BooksController(LibraryContext context, UserManager<IdentityUser> userManager)
+        public BooksController(LibraryContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _userManager = userManager;

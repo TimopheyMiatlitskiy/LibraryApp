@@ -1,5 +1,5 @@
 ﻿using LibraryApp.DTOs;
-using LibraryApp.UseCases;
+using LibraryApp.UseCases.Facades;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,9 +9,9 @@ namespace LibraryApp.Controllers
     [ApiController]
     public class AuthorsApiController : ControllerBase
     {
-        private readonly AuthorsUseCases _authorsUseCases;
+        private readonly AuthorsUseCasesFacade _authorsUseCases;
 
-        public AuthorsApiController(AuthorsUseCases authorsUseCases)
+        public AuthorsApiController(AuthorsUseCasesFacade authorsUseCases)
         {
             _authorsUseCases = authorsUseCases;
         }
@@ -20,7 +20,7 @@ namespace LibraryApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAuthors(int pageNumber = 1, int pageSize = 10)
         {
-            var authors = await _authorsUseCases.GetAuthorsAsync(pageNumber, pageSize);
+            var authors = await _authorsUseCases.GetAuthorsUseCase.GetAuthorsAsync(pageNumber, pageSize);
             return Ok(authors);
         }
 
@@ -28,56 +28,32 @@ namespace LibraryApp.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetAuthorById(int id)
         {
-            var author = await _authorsUseCases.GetAuthorByIdAsync(id);
-            return author == null ? NotFound("Автор не найден.") : Ok(author);
+            var author = await _authorsUseCases.GetAuthorByIdUseCase.GetAuthorByIdAsync(id);
+            return Ok(author);
         }
 
         [Authorize(Policy = "AdminPolicy")]
         [HttpPost]
-        public async Task<IActionResult> CreateAuthor([FromBody] AuthorDto authorDto)
+        public async Task<IActionResult> CreateAuthor([FromBody] CreateAuthorDto createAuthorDto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var createdAuthor = await _authorsUseCases.CreateAuthorAsync(authorDto);
+            var createdAuthor = await _authorsUseCases.CreateAuthorUseCase.CreateAuthorAsync(createAuthorDto, User);
             return CreatedAtAction(nameof(GetAuthorById), new { id = createdAuthor.Id }, createdAuthor);
         }
 
         [Authorize(Policy = "AdminPolicy")]
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateAuthor(int id, [FromBody] AuthorDto authorDto)
+        [HttpPut]
+        public async Task<IActionResult> UpdateAuthor([FromBody] UpdateAuthorDto updateAuthorDto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            try
-            {
-                await _authorsUseCases.UpdateAuthorAsync(id, authorDto);
-                return NoContent();
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
+            await _authorsUseCases.UpdateAuthorUseCase.UpdateAuthorAsync(updateAuthorDto, User);
+            return Ok("Автор обновлен");
         }
 
         [Authorize(Policy = "AdminPolicy")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAuthor(int id)
         {
-            try
-            {
-                await _authorsUseCases.DeleteAuthorAsync(id);
-                return NoContent();
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
+            await _authorsUseCases.DeleteAuthorUseCase.DeleteAuthorAsync(id, User);
+            return Ok("Автор удален");
         }
     }
 }

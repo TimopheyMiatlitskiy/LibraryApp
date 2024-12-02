@@ -14,14 +14,23 @@ namespace LibraryApp.Repositories
             _context = context;
         }
 
+        public async Task<IEnumerable<Author>> GetAllAsync(int pageNumber, int pageSize)
+        {
+            return await _context.Authors.Include(a => a.Books)
+                                         .Skip((pageNumber - 1) * pageSize)
+                                         .Take(pageSize)
+                                         .ToListAsync();
+        }
+
         public async Task<Author?> GetByIdAsync(int id)
         {
             return await _context.Authors.Include(a => a.Books).FirstOrDefaultAsync(a => a.Id == id);
         }
 
-        public async Task<IEnumerable<Author>> GetAllAsync()
+        public async Task<Author?> FindByNameAsync(string firstName, string lastName)
         {
-            return await _context.Authors.Include(a => a.Books).ToListAsync();
+            return await _context.Authors
+                .FirstOrDefaultAsync(a => a.FirstName == firstName && a.LastName == lastName);
         }
 
         public void Add(Author author)

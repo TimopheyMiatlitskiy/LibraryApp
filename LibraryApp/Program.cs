@@ -14,8 +14,10 @@ using LibraryApp.Validators;
 using LibraryApp.Interfaces;
 using LibraryApp.Mappings;
 using LibraryApp.Infrastructure;
-using LibraryApp.UseCases;
 using Microsoft.EntityFrameworkCore.Design;
+using System.Security.Claims;
+using LibraryApp.UseCases.Facades;
+using LibraryApp.Models;
 
 namespace LibraryApp
 {
@@ -30,7 +32,7 @@ namespace LibraryApp
             builder.Services.AddDbContext<LibraryContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("LibraryConnection")));
 
-            builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+            builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<LibraryContext>()
                 .AddDefaultTokenProviders();
 
@@ -96,20 +98,25 @@ namespace LibraryApp
 
             builder.Services.AddAuthorization(options =>
             {
-                options.AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin"));
+                options.AddPolicy("AdminPolicy", policy =>
+                policy.RequireAssertion(context =>
+                context.User.HasClaim(c => c.Type == ClaimTypes.Role && c.Value == "Admin")));
                 options.AddPolicy("UserPolicy", policy => policy.RequireRole("Admin", "User"));
             });
 
             // Регистрация служб
-            builder.Services.AddSingleton<TokenService>();
-            builder.Services.AddTransient<AuthUseCases>();
-            builder.Services.AddTransient<BooksUseCases>();
-            builder.Services.AddTransient<AuthorsUseCases>();
+            builder.Services.AddScoped<TokenService>();
+            builder.Services.Scan(scan => scan
+                .FromAssembliesOf(typeof(AuthorsUseCasesFacade), typeof(BooksUseCasesFacade), typeof(AuthorizationUseCasesFacade))
+                .AddClasses(classes => classes.Where(type => type.Name.EndsWith("UseCase") || type.Name.EndsWith("Facade")))
+                .AsSelf()
+                .WithTransientLifetime());
 
             //UnitOfWork
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IBookRepository, BookRepository>();
             builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
 
             //Mapping
             builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
@@ -126,11 +133,17 @@ namespace LibraryApp
 
             if (app.Environment.IsDevelopment())
             {
-                app.UseExceptionMiddleware();
                 app.UseHsts();
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var facade = scope.ServiceProvider.GetRequiredService<AuthorizationUseCasesFacade>();
+                Console.WriteLine(facade != null ? "Фасад доступен" : "Фасад недоступен");
+            }
+
 
             using (var scope = app.Services.CreateScope())
             {
@@ -151,6 +164,8 @@ namespace LibraryApp
 
             app.UseCors();
             app.UseAuthentication();
+
+            app.UseMiddleware<ExceptionMiddleware>();
             app.UseAuthorization();
 
             app.MapControllers();

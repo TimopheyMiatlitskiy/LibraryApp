@@ -4,6 +4,7 @@
     {
         IBookRepository Books { get; }
         IAuthorRepository Authors { get; }
+        IUserRepository Users { get; }
         Task<int> CompleteAsync();
     }
 }

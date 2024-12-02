@@ -1,84 +1,95 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using System.Net;
 using System.Text.Json;
-using System.Threading.Tasks;
+using LibraryApp.Exceptions;
 
 namespace LibraryApp.Middleware
 {
     public class ExceptionMiddleware
     {
         private readonly RequestDelegate _next;
-        private readonly ILogger _logger;
+        private readonly ILogger<ExceptionMiddleware> _logger;
 
-        public ExceptionMiddleware(RequestDelegate next, ILoggerFactory loggerFactory)
+        public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
         {
             _next = next;
-            _logger = loggerFactory.CreateLogger<ExceptionMiddleware>();
+            _logger = logger;
         }
 
-        public async Task Invoke(HttpContext httpContext)
+        public async Task InvokeAsync(HttpContext context)
         {
             try
             {
-                await _next(httpContext); // Передаем запрос дальше по цепочке
+                await _next(context);
+
+                // Проверяем статус после выполнения следующего Middleware
+                if (context.Response.StatusCode == StatusCodes.Status403Forbidden)
+                {
+                    throw new ForbiddenException("Доступ запрещён.");
+                }
+                else if (context.Response.StatusCode == StatusCodes.Status401Unauthorized)
+                {
+                    throw new UnauthorizedAccessException("Неавторизованный доступ.");
+                }
             }
             catch (Exception ex)
             {
-                if (httpContext.Response.StatusCode == StatusCodes.Status400BadRequest)
-                {
-                    _logger.LogError($"Произошла ошибка: {ex.Message}");
-                    await HandleValidationExceptionAsync(httpContext, ex); // Обрабатываем ошибки валидации
-                }
-                else
-                {
-                    _logger.LogError($"Произошла ошибка: {ex.Message}");
-                    await HandleExceptionAsync(httpContext, ex); // Обрабатываем исключение
-                }
+                _logger.LogError(ex, "Ошибка обработки запроса: {Message}", ex.Message);
+                await HandleExceptionAsync(context, ex);
             }
         }
 
-        private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
+
+        private static Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
-            if (!context.Response.HasStarted)
+            var statusCode = HttpStatusCode.InternalServerError; // По умолчанию 500
+            var errorMessage = "Что-то пошло не так.";
+
+            switch (exception)
             {
-                context.Response.ContentType = "application/json";
-                context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                case NotFoundException:
+                    statusCode = HttpStatusCode.NotFound;
+                    errorMessage = exception.Message;
+                    break;
 
-                var response = new
-                {
-                    StatusCode = context.Response.StatusCode,
-                    Message = "Что-то пошло не так.",
-                    Detailed = exception.Message
-                };
+                case AlreadyExistsException:
+                    statusCode = HttpStatusCode.Conflict;
+                    errorMessage = exception.Message;
+                    break;
 
-                await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+                case BadRequestException:
+                    statusCode = HttpStatusCode.BadRequest;
+                    errorMessage = exception.Message;
+                    break;
+
+                case UnauthorizedException:
+                    statusCode = HttpStatusCode.Unauthorized;
+                    errorMessage = exception.Message;
+                    break;
+
+                case RequestTimeoutException:
+                    statusCode = HttpStatusCode.RequestTimeout;
+                    errorMessage = exception.Message;
+                    break;
+
+                case ForbiddenException:
+                    statusCode = HttpStatusCode.Forbidden;
+                    errorMessage = exception.Message;
+                    break;
+
+                default:
+                    break;
             }
-        }
 
-        private static async Task HandleValidationExceptionAsync(HttpContext context, Exception exception)
-        {
-            if (!context.Response.HasStarted)
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode = (int)statusCode;
+
+            var response = new
             {
-                context.Response.ContentType = "application/json";
+                StatusCode = context.Response.StatusCode,
+                Message = errorMessage,
+            };
 
-                var response = new
-                {
-                    StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "Ошибка валидации данных.",
-                    Details = exception?.Message ?? "Некорректный ввод параметров запроса."
-                };
-                var jsonResponse = JsonSerializer.Serialize(response);
-
-                await context.Response.WriteAsync(JsonSerializer.Serialize(response));
-            }
-        }
-    }
-
-    // Extension method to add middleware to the HTTP request pipeline
-    public static class ExceptionMiddlewareExtensions
-    {
-        public static IApplicationBuilder UseExceptionMiddleware(this IApplicationBuilder builder)
-        {
-            return builder.UseMiddleware<ExceptionMiddleware>();
+            return context.Response.WriteAsync(JsonSerializer.Serialize(response));
         }
     }
 }

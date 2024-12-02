@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Identity;
+using LibraryApp.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -10,10 +12,26 @@ namespace LibraryApp.Services
     public class TokenService
     {
         private readonly IConfiguration _configuration;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public TokenService(IConfiguration configuration)
+        public TokenService(IConfiguration configuration, UserManager<ApplicationUser> userManager)
         {
             _configuration = configuration;
+            _userManager = userManager;
+        }
+
+        public async Task<List<Claim>> GenerateClaimsAsync(ApplicationUser user)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, user.UserName!),
+                new Claim(ClaimTypes.NameIdentifier, user.Id)
+            };
+
+            var roles = await _userManager.GetRolesAsync(user);
+            claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+
+            return claims;
         }
 
         public string GenerateAccessToken(IEnumerable<Claim> claims)

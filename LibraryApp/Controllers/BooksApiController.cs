@@ -1,7 +1,8 @@
 ﻿using LibraryApp.DTOs;
-using LibraryApp.UseCases;
+using LibraryApp.UseCases.Facades;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace LibraryApp.Controllers
 {
@@ -9,18 +10,18 @@ namespace LibraryApp.Controllers
     [ApiController]
     public class BooksApiController : ControllerBase
     {
-        private readonly BooksUseCases _booksUseCases;
+        private readonly BooksUseCasesFacade _booksUseCases;
 
-        public BooksApiController(BooksUseCases booksUseCases)
+        public BooksApiController(BooksUseCasesFacade booksUseCases)
         {
             _booksUseCases = booksUseCases;
         }
 
         [Authorize(Policy = "UserPolicy")]
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<BookDto>>> GetBooks(int pageNumber = 1, int pageSize = 10)
+        public async Task<IActionResult> GetBooks(int pageNumber = 1, int pageSize = 10)
         {
-            var books = await _booksUseCases.GetBooksAsync(pageNumber, pageSize);
+            var books = await _booksUseCases.GetBooksUseCase.GetBooksAsync(pageNumber, pageSize);
             return Ok(books);
         }
 
@@ -28,9 +29,7 @@ namespace LibraryApp.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetBookById(int id)
         {
-            var book = await _booksUseCases.GetBookByIdAsync(id);
-            if (book == null)
-                return NotFound("Книга не найдена.");
+            var book = await _booksUseCases.GetBookByIdUseCase.GetBookByIdAsync(id);
             return Ok(book);
         }
 
@@ -38,115 +37,58 @@ namespace LibraryApp.Controllers
         [HttpGet("isbn/{isbn}")]
         public async Task<IActionResult> GetBookByISBN(string isbn)
         {
-            var book = await _booksUseCases.GetBookByISBNAsync(isbn);
-            if (book == null)
-                return NotFound("Книга не найдена.");
+            var book = await _booksUseCases.GetBookByISBNUseCase.GetBookByISBNAsync(isbn);
             return Ok(book);
         }
 
         [Authorize(Policy = "AdminPolicy")]
         [HttpPost]
-        public async Task<IActionResult> CreateBook([FromBody] BookDto bookDto)
+        public async Task<IActionResult> CreateBook([FromBody] CreateBookDto request)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var createdBook = await _booksUseCases.CreateBookAsync(bookDto);
+            var createdBook = await _booksUseCases.CreateBookUseCase.CreateBookAsync(request, User);
             return CreatedAtAction(nameof(GetBookById), new { id = createdBook.Id }, createdBook);
         }
 
         [Authorize(Policy = "AdminPolicy")]
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateBook(int id, [FromBody] BookDto bookDto)
+        public async Task<IActionResult> UpdateBook([FromBody] UpdateBookDto request)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            try
-            {
-                await _booksUseCases.UpdateBookAsync(id, bookDto);
-                return NoContent();
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
+            await _booksUseCases.UpdateBookUseCase.UpdateBookAsync(request, User);
+            return Ok("Книга обновлена");
         }
 
         [Authorize(Policy = "AdminPolicy")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBook(int id)
         {
-            try
-            {
-                await _booksUseCases.DeleteBookAsync(id);
-                return NoContent();
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
+            await _booksUseCases.DeleteBookUseCase.DeleteBookAsync(id, User);
+            return Ok("Книга удалена");
         }
 
         [Authorize(Policy = "UserPolicy")]
         [HttpPost("{id}/borrow")]
-        public async Task<IActionResult> BorrowBook(int id, [FromQuery] string userId)
+        public async Task<IActionResult> BorrowBook(int id)
         {
-            try
-            {
-                var message = await _booksUseCases.BorrowBookAsync(id, userId);
-                return Ok(new { message });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            await _booksUseCases.BorrowBookUseCase.BorrowBookAsync(id, userId!);
+            return Ok("Книга успешно взята на руки.");
         }
 
         [Authorize(Policy = "UserPolicy")]
         [HttpPost("{id}/return")]
         public async Task<IActionResult> ReturnBook(int id)
         {
-            try
-            {
-                var message = await _booksUseCases.ReturnBookAsync(id);
-                return Ok(new { message });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            await _booksUseCases.ReturnBookUseCase.ReturnBookAsync(id, userId!);
+            return Ok("Книга успешно возвращена.");
         }
 
         [Authorize(Policy = "AdminPolicy")]
-        [HttpPost("{id}/upload-image")]
-        public async Task<IActionResult> UploadBookImage(int id, IFormFile imageFile)
+        [HttpPost("upload-image")]
+        public async Task<IActionResult> UploadBookImage([FromForm] UploadImageDto uploadImageDto)
         {
-            try
-            {
-                var imageUrl = await _booksUseCases.UploadBookImageAsync(id, imageFile);
-                return Ok(new { imageUrl });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var imageUrl = await _booksUseCases.UploadBookImageUseCase.UploadBookImageAsync(uploadImageDto, User);
+            return Ok(new { imageUrl });
         }
     }
 }

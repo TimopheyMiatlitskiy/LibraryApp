@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace LibraryApp.Data
 {
-    public class LibraryContext : IdentityDbContext<IdentityUser>
+    public class LibraryContext : IdentityDbContext<ApplicationUser>
     {
         public LibraryContext(DbContextOptions<LibraryContext> options) : base(options)
         {

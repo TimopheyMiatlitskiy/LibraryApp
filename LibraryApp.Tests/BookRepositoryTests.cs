@@ -43,7 +43,7 @@ namespace LibraryApp.Tests
             bookRepository.Add(newBook);
             await context.SaveChangesAsync();
 
-            var books = await bookRepository.GetAllAsync();
+            var books = await bookRepository.GetAllAsync(1, 10);
 
             // Assert
             Assert.Contains(books, b => b.Title == newBook.Title && b.ISBN == newBook.ISBN);

@@ -8,10 +8,10 @@ namespace LibraryApp.Infrastructure
     public class DataSeeder
     {
         private readonly LibraryContext _context;
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
 
-        public DataSeeder(LibraryContext context, UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager)
+        public DataSeeder(LibraryContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
         {
             _context = context;
             _userManager = userManager;
@@ -34,7 +34,7 @@ namespace LibraryApp.Infrastructure
 
             if (await _userManager.FindByEmailAsync("admin@libraryapp.com") == null)
             {
-                var adminUser = new IdentityUser { UserName = "admin@libraryapp.com", Email = "admin@libraryapp.com" };
+                var adminUser = new ApplicationUser { UserName = "admin@libraryapp.com", Email = "admin@libraryapp.com" };
                 var result = await _userManager.CreateAsync(adminUser, "Admin@1234");
 
                 if (result.Succeeded)
