@@ -1,4 +1,5 @@
-﻿using LibraryApp.Exceptions;
+﻿using LibraryApp.DTOs;
+using LibraryApp.Exceptions;
 using LibraryApp.Models;
 using LibraryApp.Services;
 using Microsoft.AspNetCore.Identity;
@@ -17,25 +18,20 @@ namespace LibraryApp.UseCases.Authorization
             _tokenService = tokenService;
         }
 
-        public async Task<(string AccessToken, string RefreshToken)> RefreshTokensAsync(string refreshToken)
+        public async Task<(string? AccessToken, string? RefreshToken)> RefreshTokensAsync(RefreshTokenRequest request)
         {
-            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken)
+            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.RefreshToken == request.RefreshToken)
                 ?? throw new UnauthorizedException("Недействительный или истёкший refresh-токен.");
 
             if (user.RefreshTokenExpiryTime <= DateTime.UtcNow)
                 throw new UnauthorizedException("Срок действия refresh-токена истёк.");
 
+            // Генерируем новый Access Token
             var userClaims = await _tokenService.GenerateClaimsAsync(user);
             var newAccessToken = _tokenService.GenerateAccessToken(userClaims);
 
-            // Генерируем новый refresh-токен
-            var newRefreshToken = _tokenService.GenerateRefreshToken();
-            user.RefreshToken = newRefreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-            await _userManager.UpdateAsync(user);
-
-            return (newAccessToken, newRefreshToken);
+            // Возвращаем текущий Refresh Token без изменений
+            return (newAccessToken, user.RefreshToken);
         }
-
     }
 }

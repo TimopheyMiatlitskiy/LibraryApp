@@ -5,47 +5,43 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LibraryApp.Repositories
 {
-    public class AuthorRepository : IAuthorRepository
+    public class AuthorRepository : BaseRepository<Author>, IAuthorRepository
     {
-        private readonly LibraryContext _context;
-
-        public AuthorRepository(LibraryContext context)
+        public AuthorRepository(LibraryContext context) : base(context)
         {
-            _context = context;
         }
 
         public async Task<IEnumerable<Author>> GetAllAsync(int pageNumber, int pageSize)
         {
-            return await _context.Authors.Include(a => a.Books)
+            return await _dbSet.Include(a => a.Books)
                                          .Skip((pageNumber - 1) * pageSize)
                                          .Take(pageSize)
                                          .ToListAsync();
         }
 
-        public async Task<Author?> GetByIdAsync(int id)
+        public new async Task<Author?> GetByIdAsync(int id)
         {
-            return await _context.Authors.Include(a => a.Books).FirstOrDefaultAsync(a => a.Id == id);
+            return await _dbSet.Include(a => a.Books).FirstOrDefaultAsync(a => a.Id == id);
         }
 
         public async Task<Author?> FindByNameAsync(string firstName, string lastName)
         {
-            return await _context.Authors
-                .FirstOrDefaultAsync(a => a.FirstName == firstName && a.LastName == lastName);
+            return await _dbSet.FirstOrDefaultAsync(a => a.FirstName == firstName && a.LastName == lastName);
         }
 
-        public void Add(Author author)
+        public new void Add(Author author)
         {
-            _context.Authors.Add(author);
+            _dbSet.Add(author);
         }
 
-        public void Update(Author author)
+        public new void Update(Author author)
         {
-            _context.Authors.Update(author);
+            _dbSet.Update(author);
         }
 
-        public void Delete(Author author)
+        public new void Delete(Author author)
         {
-            _context.Authors.Remove(author);
+            _dbSet.Remove(author);
         }
     }
 }

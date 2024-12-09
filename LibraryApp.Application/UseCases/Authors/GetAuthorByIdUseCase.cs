@@ -16,12 +16,12 @@ namespace LibraryApp.UseCases.Authors
             _mapper = mapper;
         }
 
-        public async Task<AuthorDto> GetAuthorByIdAsync(int id)
+        public async Task<AuthorDto> GetAuthorByIdAsync(AuthorIdDto request)
         {
-            if (id <= 0 || id > int.MaxValue)
+            if (request.Id <= 0 || request.Id > int.MaxValue)
                 throw new BadRequestException("Некорректный идентификатор.");
 
-            var author = await _authorRepository.GetByIdAsync(id)
+            var author = await _authorRepository.GetByIdAsync(request.Id)
                 ?? throw new NotFoundException("Автор не найден.");
             return _mapper.Map<AuthorDto>(author);
         }

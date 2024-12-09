@@ -38,8 +38,9 @@ namespace LibraryApp.Repositories
             return user != null && user.EmailConfirmed;
         }
 
-        public void Update(ApplicationUser user)
+        public async Task UpdateAsync(ApplicationUser user)
         {
+            await _userManager.UpdateAsync(user);
         }
 
         public async Task DeleteAsync(ApplicationUser user)

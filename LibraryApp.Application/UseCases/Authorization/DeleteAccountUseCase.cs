@@ -2,6 +2,7 @@
 using LibraryApp.Interfaces;
 using LibraryApp.Models;
 using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 
 namespace LibraryApp.UseCases.Authorization
 {
@@ -18,8 +19,11 @@ namespace LibraryApp.UseCases.Authorization
             _userManager = userManager;
         }
 
-        public async Task DeleteUserAsync(string userId)
+        public async Task DeleteUserAsync(ClaimsPrincipal userClaims)
         {
+            var userId = userClaims.FindFirst(ClaimTypes.NameIdentifier)?.Value
+               ?? throw new UnauthorizedAccessException("Пользователь не авторизован.");
+
             // Проверка существования пользователя
             var user = await _userRepository.GetByIdAsync(userId)
                 ?? throw new NotFoundException("Пользователь не найден.");

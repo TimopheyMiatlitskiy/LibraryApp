@@ -69,7 +69,7 @@ namespace LibraryApp.Middleware
                     }
                     break;
 
-                case UnauthorizedException:
+                case UnauthorizedAccessException:
                     statusCode = HttpStatusCode.Unauthorized;
                     errorMessage = exception.Message;
                     break;

@@ -17,40 +17,37 @@ namespace LibraryApp.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        public async Task<IActionResult> Login([FromQuery] LoginRequest request)
         {
             var tokens = await _authorizationUseCases.LoginUseCase.LoginAsync(request);
             return Ok(new { tokens.AccessToken, tokens.RefreshToken });
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        public async Task<IActionResult> Register([FromQuery] RegisterRequest request)
         {
             await _authorizationUseCases.RegisterUseCase.RegisterAsync(request);
             return Ok("Регистрация прошла успешно");
         }
 
         [HttpPost("reset-password")]
-        public async Task<IActionResult> ResetPassword(string email, string newPassword)
+        public async Task<IActionResult> ResetPassword([FromQuery] ResetPasswordRequest request)
         {
-            await _authorizationUseCases.ResetPasswordUseCase.ResetPasswordAsync(email, newPassword);
+            await _authorizationUseCases.ResetPasswordUseCase.ResetPasswordAsync(request);
             return Ok("Пароль успешно сброшен.");
         }
 
         [HttpPost("refresh-token")]
-        public async Task<IActionResult> RefreshToken([FromBody] string refreshToken)
+        public async Task<IActionResult> RefreshToken([FromQuery] RefreshTokenRequest request)
         {
-            var tokens = await _authorizationUseCases.RefreshTokensUseCase.RefreshTokensAsync(refreshToken);
+            var tokens = await _authorizationUseCases.RefreshTokensUseCase.RefreshTokensAsync(request);
             return Ok(new { tokens.AccessToken, tokens.RefreshToken });
         }
 
         [HttpDelete("delete-account")]
         public async Task<IActionResult> DeleteAccount()
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                ?? throw new UnauthorizedAccessException("Пользователь не авторизован.");
-
-            await _authorizationUseCases.DeleteAccountUseCase.DeleteUserAsync(userId);
+            await _authorizationUseCases.DeleteAccountUseCase.DeleteUserAsync(User);
             return Ok("Аккаунт успешно удалён.");
         }
 

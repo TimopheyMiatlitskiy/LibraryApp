@@ -16,9 +16,9 @@ namespace LibraryApp.UseCases.Books
             _mapper = mapper;
         }
 
-        public async Task<BookDto> GetBookByISBNAsync(string isbn)
+        public async Task<BookDto> GetBookByISBNAsync(BookISBNDto request)
         {
-            var book = await _bookRepository.GetByISBNAsync(isbn)
+            var book = await _bookRepository.GetByISBNAsync(request.ISBN)
                 ?? throw new NotFoundException("Книга не найдена.");
             return _mapper.Map<BookDto>(book);
         }

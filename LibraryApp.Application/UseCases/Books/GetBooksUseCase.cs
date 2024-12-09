@@ -15,9 +15,9 @@ namespace LibraryApp.UseCases.Books
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<BookDto>> GetBooksAsync(int pageNumber, int pageSize)
+        public async Task<IEnumerable<BookDto>> GetBooksAsync(GetBooksDto request)
         {
-            var books = await _bookRepository.GetAllAsync(pageNumber, pageSize);
+            var books = await _bookRepository.GetAllAsync(request.PageNumber, request.PageSize);
             return _mapper.Map<IEnumerable<BookDto>>(books);
         }
     }

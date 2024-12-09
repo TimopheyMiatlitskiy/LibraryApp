@@ -15,9 +15,9 @@ namespace LibraryApp.UseCases.Authors
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<AuthorDto>> GetAuthorsAsync(int pageNumber, int pageSize)
+        public async Task<IEnumerable<AuthorDto>> GetAuthorsAsync(GetAuthorsDto request)
         {
-            var authors = await _authorRepository.GetAllAsync(pageNumber, pageSize);
+            var authors = await _authorRepository.GetAllAsync(request.PageNumber, request.PageSize);
             return _mapper.Map<IEnumerable<AuthorDto>>(authors);
         }
     }

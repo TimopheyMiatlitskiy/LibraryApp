@@ -42,7 +42,6 @@ namespace LibraryApp
             builder.Services.AddTransient<DataSeeder>();
 
             // Add services to the container.
-            builder.Services.AddControllersWithViews();
             builder.Services.AddEndpointsApiExplorer();
 
             // Конфигурация JWT
@@ -140,7 +139,12 @@ namespace LibraryApp
             {
                 app.UseHsts();
                 app.UseSwagger();
-                app.UseSwaggerUI();
+                //app.UseSwaggerUI();
+                app.UseSwaggerUI(options =>
+                {
+                    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Library API v1");
+                    options.RoutePrefix = string.Empty; // Открывать Swagger по корневому пути "/"
+                });
             }
 
             using (var scope = app.Services.CreateScope())
@@ -174,7 +178,6 @@ namespace LibraryApp
             app.UseAuthorization();
 
             app.MapControllers();
-            app.MapDefaultControllerRoute();
 
             app.Run();
         }

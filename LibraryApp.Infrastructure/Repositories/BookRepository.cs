@@ -5,46 +5,43 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LibraryApp.Repositories
 {
-    public class BookRepository : IBookRepository
+    public class BookRepository : BaseRepository<Book>, IBookRepository
     {
-        private readonly LibraryContext _context;
-
-        public BookRepository(LibraryContext context)
+        public BookRepository(LibraryContext context) : base(context)
         {
-            _context = context;
         }
 
         public async Task<IEnumerable<Book>> GetAllAsync(int pageNumber, int pageSize)
         {
-            return await _context.Books.Include(b => b.Author)
+            return await _dbSet.Include(b => b.Author)
                                        .Skip((pageNumber - 1) * pageSize)
                                        .Take(pageSize)
                                        .ToListAsync();
         }
 
-        public async Task<Book?> GetByIdAsync(int id)
+        public new async Task<Book?> GetByIdAsync(int id)
         {
-            return await _context.Books.Include(b => b.Author).FirstOrDefaultAsync(b => b.Id == id);
+            return await _dbSet.Include(b => b.Author).FirstOrDefaultAsync(b => b.Id == id);
         }
 
         public async Task<Book?> GetByISBNAsync(string isbn)
         {
-            return await _context.Books.Include(b => b.Author).FirstOrDefaultAsync(b => b.ISBN == isbn);
+            return await _dbSet.FirstOrDefaultAsync(b => b.ISBN == isbn);
         }
 
-        public void Add(Book book)
+        public new void Add(Book book)
         {
-            _context.Books.Add(book);
+            _dbSet.Add(book);
         }
 
-        public void Update(Book book)
+        public new void Update(Book book)
         {
-            _context.Books.Update(book);
+            _dbSet.Update(book);
         }
 
-        public void Delete(Book book)
+        public new void Delete(Book book)
         {
-            _context.Books.Remove(book);
+            _dbSet.Remove(book);
         }
 
         public void BorrowBookAsync(Book book, string userId)
@@ -52,18 +49,18 @@ namespace LibraryApp.Repositories
             book.BorrowedByUserId = userId;
             book.BorrowedAt = DateTime.Now;
             book.ReturnAt = DateTime.Now.AddDays(14);
-            _context.Books.Update(book);
+            _dbSet.Update(book);
         }
 
         public void AddBookImageAsync(Book book, string imagePath)
         {
             book.ImagePath = imagePath;
-            _context.Books.Update(book);
+            _dbSet.Update(book);
         }
 
         public async Task<IEnumerable<Book>> GetBooksByBorrowerIdAsync(string borrowerId)
         {
-            return await _context.Books
+            return await _dbSet
                 .Where(b => b.BorrowedByUserId == borrowerId)
                 .ToListAsync();
         }

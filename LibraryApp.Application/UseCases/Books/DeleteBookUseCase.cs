@@ -1,4 +1,5 @@
-﻿using LibraryApp.Exceptions;
+﻿using LibraryApp.DTOs;
+using LibraryApp.Exceptions;
 using LibraryApp.Interfaces;
 using System.Security.Claims;
 
@@ -15,15 +16,15 @@ namespace LibraryApp.UseCases.Books
             _unitOfWork = unitOfWork;
         }
 
-        public async Task DeleteBookAsync(int id, ClaimsPrincipal user)
+        public async Task DeleteBookAsync(BookIdDto request, ClaimsPrincipal user)
         {
-            if (id > int.MaxValue)
+            if (request.Id > int.MaxValue)
                 throw new BadRequestException("Некорректный идентификатор.");
 
             if (!user.IsInRole("Admin"))
                 throw new ForbiddenException("У вас нет доступа к этому ресурсу.");
 
-            var book = await _bookRepository.GetByIdAsync(id)
+            var book = await _bookRepository.GetByIdAsync(request.Id)
                 ?? throw new NotFoundException("Книга не найдена.");
 
             _bookRepository.Delete(book);

@@ -8,7 +8,7 @@ namespace LibraryApp.Interfaces
         Task<ApplicationUser?> GetByEmailAsync(string email);
         Task<IEnumerable<ApplicationUser>> GetAllAsync(int pageNumber, int pageSize);
         Task<bool> IsEmailConfirmedAsync(string userId);
-        void Update(ApplicationUser user);
+        Task UpdateAsync(ApplicationUser user);
         Task DeleteAsync(ApplicationUser user);
     }
 }

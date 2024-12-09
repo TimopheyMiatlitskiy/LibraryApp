@@ -18,17 +18,17 @@ namespace LibraryApp.Controllers
 
         [Authorize(Policy = "UserPolicy")]
         [HttpGet]
-        public async Task<IActionResult> GetAuthors(int pageNumber = 1, int pageSize = 10)
+        public async Task<IActionResult> GetAuthors([FromQuery] GetAuthorsDto request)
         {
-            var authors = await _authorsUseCases.GetAuthorsUseCase.GetAuthorsAsync(pageNumber, pageSize);
+            var authors = await _authorsUseCases.GetAuthorsUseCase.GetAuthorsAsync(request);
             return Ok(authors);
         }
 
         [Authorize(Policy = "UserPolicy")]
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetAuthorById(int id)
+        public async Task<IActionResult> GetAuthorById([FromRoute] AuthorIdDto request)
         {
-            var author = await _authorsUseCases.GetAuthorByIdUseCase.GetAuthorByIdAsync(id);
+            var author = await _authorsUseCases.GetAuthorByIdUseCase.GetAuthorByIdAsync(request);
             return Ok(author);
         }
 
@@ -50,9 +50,9 @@ namespace LibraryApp.Controllers
 
         [Authorize(Policy = "AdminPolicy")]
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteAuthor(int id)
+        public async Task<IActionResult> DeleteAuthor([FromRoute] AuthorIdDto request)
         {
-            await _authorsUseCases.DeleteAuthorUseCase.DeleteAuthorAsync(id, User);
+            await _authorsUseCases.DeleteAuthorUseCase.DeleteAuthorAsync(request, User);
             return Ok("Автор удален");
         }
     }

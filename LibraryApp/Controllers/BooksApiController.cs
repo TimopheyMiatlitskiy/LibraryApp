@@ -1,4 +1,5 @@
-﻿using LibraryApp.DTOs;
+﻿using Azure.Core;
+using LibraryApp.DTOs;
 using LibraryApp.UseCases.Facades;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,25 +20,25 @@ namespace LibraryApp.Controllers
 
         [Authorize(Policy = "UserPolicy")]
         [HttpGet]
-        public async Task<IActionResult> GetBooks(int pageNumber = 1, int pageSize = 10)
+        public async Task<IActionResult> GetBooks([FromQuery] GetBooksDto request)
         {
-            var books = await _booksUseCases.GetBooksUseCase.GetBooksAsync(pageNumber, pageSize);
+            var books = await _booksUseCases.GetBooksUseCase.GetBooksAsync(request);
             return Ok(books);
         }
 
         [Authorize(Policy = "UserPolicy")]
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetBookById(int id)
+        public async Task<IActionResult> GetBookById([FromRoute] BookIdDto request)
         {
-            var book = await _booksUseCases.GetBookByIdUseCase.GetBookByIdAsync(id);
+            var book = await _booksUseCases.GetBookByIdUseCase.GetBookByIdAsync(request);
             return Ok(book);
         }
 
         [Authorize(Policy = "UserPolicy")]
         [HttpGet("isbn/{isbn}")]
-        public async Task<IActionResult> GetBookByISBN(string isbn)
+        public async Task<IActionResult> GetBookByISBN([FromRoute] BookISBNDto request)
         {
-            var book = await _booksUseCases.GetBookByISBNUseCase.GetBookByISBNAsync(isbn);
+            var book = await _booksUseCases.GetBookByISBNUseCase.GetBookByISBNAsync(request);
             return Ok(book);
         }
 
@@ -51,7 +52,7 @@ namespace LibraryApp.Controllers
 
         [Authorize(Policy = "AdminPolicy")]
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateBook([FromBody] UpdateBookDto request)
+        public async Task<IActionResult> UpdateBook([FromRoute] UpdateBookDto request)
         {
             await _booksUseCases.UpdateBookUseCase.UpdateBookAsync(request, User);
             return Ok("Книга обновлена");
@@ -59,27 +60,27 @@ namespace LibraryApp.Controllers
 
         [Authorize(Policy = "AdminPolicy")]
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteBook(int id)
+        public async Task<IActionResult> DeleteBook([FromRoute] BookIdDto request)
         {
-            await _booksUseCases.DeleteBookUseCase.DeleteBookAsync(id, User);
+            await _booksUseCases.DeleteBookUseCase.DeleteBookAsync(request, User);
             return Ok("Книга удалена");
         }
 
         [Authorize(Policy = "UserPolicy")]
         [HttpPost("{id}/borrow")]
-        public async Task<IActionResult> BorrowBook(int id)
+        public async Task<IActionResult> BorrowBook([FromRoute] BookIdDto request)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            await _booksUseCases.BorrowBookUseCase.BorrowBookAsync(id, userId!);
+            await _booksUseCases.BorrowBookUseCase.BorrowBookAsync(request, userId!);
             return Ok("Книга успешно взята на руки.");
         }
 
         [Authorize(Policy = "UserPolicy")]
         [HttpPost("{id}/return")]
-        public async Task<IActionResult> ReturnBook(int id)
+        public async Task<IActionResult> ReturnBook([FromRoute] BookIdDto request)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            await _booksUseCases.ReturnBookUseCase.ReturnBookAsync(id, userId!);
+            await _booksUseCases.ReturnBookUseCase.ReturnBookAsync(request, userId!);
             return Ok("Книга успешно возвращена.");
         }
 
