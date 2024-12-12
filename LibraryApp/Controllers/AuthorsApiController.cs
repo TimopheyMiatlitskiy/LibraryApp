@@ -25,7 +25,7 @@ namespace LibraryApp.Controllers
         }
 
         [Authorize(Policy = "UserPolicy")]
-        [HttpGet("{id}")]
+        [HttpGet("{Id}")]
         public async Task<IActionResult> GetAuthorById([FromRoute] AuthorIdDto request)
         {
             var author = await _authorsUseCases.GetAuthorByIdUseCase.GetAuthorByIdAsync(request);
@@ -49,7 +49,7 @@ namespace LibraryApp.Controllers
         }
 
         [Authorize(Policy = "AdminPolicy")]
-        [HttpDelete("{id}")]
+        [HttpDelete("{Id}")]
         public async Task<IActionResult> DeleteAuthor([FromRoute] AuthorIdDto request)
         {
             await _authorsUseCases.DeleteAuthorUseCase.DeleteAuthorAsync(request, User);

@@ -18,10 +18,10 @@ namespace LibraryApp.UseCases.Books
 
         public async Task<BookDto> GetBookByIdAsync(BookIdDto request)
         {
+            Console.WriteLine(request.Id);
             if (request.Id <= 0 || request.Id > int.MaxValue)
                 throw new BadRequestException("Некорректный идентификатор.");
-
-            var book = await _bookRepository.GetByIdAsync(request.Id)
+            var book = await _bookRepository.GetBookByIdAsync(request.Id)
                 ?? throw new NotFoundException("Книга не найдена.");
             return _mapper.Map<BookDto>(book);
         }

@@ -27,7 +27,7 @@ namespace LibraryApp.Controllers
         }
 
         [Authorize(Policy = "UserPolicy")]
-        [HttpGet("{id}")]
+        [HttpGet("{Id}")]
         public async Task<IActionResult> GetBookById([FromRoute] BookIdDto request)
         {
             var book = await _booksUseCases.GetBookByIdUseCase.GetBookByIdAsync(request);
@@ -35,7 +35,7 @@ namespace LibraryApp.Controllers
         }
 
         [Authorize(Policy = "UserPolicy")]
-        [HttpGet("isbn/{isbn}")]
+        [HttpGet("isbn/{ISBN}")]
         public async Task<IActionResult> GetBookByISBN([FromRoute] BookISBNDto request)
         {
             var book = await _booksUseCases.GetBookByISBNUseCase.GetBookByISBNAsync(request);
@@ -51,15 +51,15 @@ namespace LibraryApp.Controllers
         }
 
         [Authorize(Policy = "AdminPolicy")]
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateBook([FromRoute] UpdateBookDto request)
+        [HttpPut]
+        public async Task<IActionResult> UpdateBook([FromBody] UpdateBookDto request)
         {
             await _booksUseCases.UpdateBookUseCase.UpdateBookAsync(request, User);
             return Ok("Книга обновлена");
         }
 
         [Authorize(Policy = "AdminPolicy")]
-        [HttpDelete("{id}")]
+        [HttpDelete("{Id}")]
         public async Task<IActionResult> DeleteBook([FromRoute] BookIdDto request)
         {
             await _booksUseCases.DeleteBookUseCase.DeleteBookAsync(request, User);
@@ -67,7 +67,7 @@ namespace LibraryApp.Controllers
         }
 
         [Authorize(Policy = "UserPolicy")]
-        [HttpPost("{id}/borrow")]
+        [HttpPost("{Id}/borrow")]
         public async Task<IActionResult> BorrowBook([FromRoute] BookIdDto request)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -76,7 +76,7 @@ namespace LibraryApp.Controllers
         }
 
         [Authorize(Policy = "UserPolicy")]
-        [HttpPost("{id}/return")]
+        [HttpPost("{Id}/return")]
         public async Task<IActionResult> ReturnBook([FromRoute] BookIdDto request)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

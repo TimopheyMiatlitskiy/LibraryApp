@@ -27,7 +27,7 @@ namespace LibraryApp.UseCases.Books
             _ = await _userRepository.GetByIdAsync(userId)
                 ?? throw new NotFoundException("Пользователь не найден.");
 
-            var book = await _bookRepository.GetByIdAsync(request.Id)
+            var book = await _bookRepository.GetBookByIdAsync(request.Id)
                 ?? throw new NotFoundException("Книга не найдена.");
 
             if (book.BorrowedAt != null && book.ReturnAt > DateTime.Now)

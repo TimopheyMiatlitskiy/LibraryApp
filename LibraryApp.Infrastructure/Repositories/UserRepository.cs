@@ -1,15 +1,16 @@
-﻿using LibraryApp.Interfaces;
+﻿using LibraryApp.Data;
+using LibraryApp.Interfaces;
 using LibraryApp.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace LibraryApp.Repositories
 {
-    public class UserRepository : IUserRepository
+    public class UserRepository : BaseRepository<ApplicationUser>, IUserRepository
     {
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public UserRepository(UserManager<ApplicationUser> userManager)
+        public UserRepository(UserManager<ApplicationUser> userManager, LibraryContext context) : base(context)
         {
             _userManager = userManager;
         }
@@ -24,23 +25,10 @@ namespace LibraryApp.Repositories
             return await _userManager.Users.FirstOrDefaultAsync(u => u.Email == email);
         }
 
-        public async Task<IEnumerable<ApplicationUser>> GetAllAsync(int pageNumber, int pageSize)
-        {
-            return await _userManager.Users
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-        }
-
         public async Task<bool> IsEmailConfirmedAsync(string userId)
         {
-            var user = await GetByIdAsync(userId);
+            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId);
             return user != null && user.EmailConfirmed;
-        }
-
-        public async Task UpdateAsync(ApplicationUser user)
-        {
-            await _userManager.UpdateAsync(user);
         }
 
         public async Task DeleteAsync(ApplicationUser user)

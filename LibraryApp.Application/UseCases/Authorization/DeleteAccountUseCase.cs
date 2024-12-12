@@ -1,6 +1,7 @@
 ﻿using LibraryApp.Exceptions;
 using LibraryApp.Interfaces;
 using LibraryApp.Models;
+using LibraryApp.Repositories;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 
@@ -11,12 +12,14 @@ namespace LibraryApp.UseCases.Authorization
         private readonly IUserRepository _userRepository;
         private readonly IBookRepository _bookRepository;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public DeleteAccountUseCase(IUserRepository userRepository, IBookRepository bookRepository, UserManager<ApplicationUser> userManager)
+        public DeleteAccountUseCase(IUserRepository userRepository, IBookRepository bookRepository,  UserManager<ApplicationUser> userManager, IUnitOfWork unitOfWork)
         {
             _userRepository = userRepository;
             _bookRepository = bookRepository;
             _userManager = userManager;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task DeleteUserAsync(ClaimsPrincipal userClaims)
@@ -35,10 +38,11 @@ namespace LibraryApp.UseCases.Authorization
                 throw new BadRequestException("Невозможно удалить пользователя: у него есть книги на руках.");
             }
 
-            // Удаление пользователя
-            await _userRepository.DeleteAsync(user);
             // Инвалидируем токены
             await _userManager.UpdateSecurityStampAsync(user);
+            // Удаление пользователя
+            await _userRepository.DeleteAsync(user);
+            await _unitOfWork.CompleteAsync(); // Добавить для фиксации изменений
         }
     }
 }

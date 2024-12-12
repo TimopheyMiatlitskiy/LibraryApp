@@ -20,10 +20,10 @@ namespace LibraryApp.UseCases.Authorization
         public async Task<(string AccessToken, string RefreshToken)> LoginAsync(LoginRequest request)
         {
             var user = await _userManager.FindByEmailAsync(request.Email)
-                ?? throw new UnauthorizedException("Неверные учетные данные.");
+                ?? throw new UnauthorizedAccessException("Неверные учетные данные.");
 
             if (!await _userManager.CheckPasswordAsync(user, request.Password))
-                throw new UnauthorizedException("Неверные учетные данные.");
+                throw new UnauthorizedAccessException("Неверные учетные данные.");
 
             var claims = await _tokenService.GenerateClaimsAsync(user);
             var accessToken = _tokenService.GenerateAccessToken(claims);

@@ -21,7 +21,7 @@ namespace LibraryApp.UseCases.Books
             if (!user.IsInRole("Admin"))
                 throw new ForbiddenException("У вас нет доступа к этому ресурсу.");
 
-            var book = await _bookRepository.GetByIdAsync(uploadImageDto.Id)
+            var book = await _bookRepository.GetBookByIdAsync(uploadImageDto.Id)
                 ?? throw new NotFoundException("Книга не найдена.");
 
             if (uploadImageDto.ImageFile == null || uploadImageDto.ImageFile.Length == 0)

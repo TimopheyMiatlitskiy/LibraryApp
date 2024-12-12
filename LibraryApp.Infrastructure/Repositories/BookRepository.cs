@@ -19,7 +19,7 @@ namespace LibraryApp.Repositories
                                        .ToListAsync();
         }
 
-        public new async Task<Book?> GetByIdAsync(int id)
+        public async Task<Book?> GetBookByIdAsync(int id)
         {
             return await _dbSet.Include(b => b.Author).FirstOrDefaultAsync(b => b.Id == id);
         }
@@ -29,26 +29,19 @@ namespace LibraryApp.Repositories
             return await _dbSet.FirstOrDefaultAsync(b => b.ISBN == isbn);
         }
 
-        public new void Add(Book book)
-        {
-            _dbSet.Add(book);
-        }
-
-        public new void Update(Book book)
-        {
-            _dbSet.Update(book);
-        }
-
-        public new void Delete(Book book)
-        {
-            _dbSet.Remove(book);
-        }
-
         public void BorrowBookAsync(Book book, string userId)
         {
             book.BorrowedByUserId = userId;
             book.BorrowedAt = DateTime.Now;
             book.ReturnAt = DateTime.Now.AddDays(14);
+            _dbSet.Update(book);
+        }
+
+        public void ReturnBook(Book book)
+        {
+            book.BorrowedByUserId = null;
+            book.BorrowedAt = null;
+            book.ReturnAt = null;
             _dbSet.Update(book);
         }
 

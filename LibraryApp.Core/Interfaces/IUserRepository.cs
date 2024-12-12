@@ -2,13 +2,11 @@
 
 namespace LibraryApp.Interfaces
 {
-    public interface IUserRepository
+    public interface IUserRepository : IBaseRepository<ApplicationUser>
     {
         Task<ApplicationUser?> GetByIdAsync(string userId);
         Task<ApplicationUser?> GetByEmailAsync(string email);
-        Task<IEnumerable<ApplicationUser>> GetAllAsync(int pageNumber, int pageSize);
         Task<bool> IsEmailConfirmedAsync(string userId);
-        Task UpdateAsync(ApplicationUser user);
         Task DeleteAsync(ApplicationUser user);
     }
 }

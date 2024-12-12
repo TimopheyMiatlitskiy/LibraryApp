@@ -16,7 +16,7 @@ namespace LibraryApp.Repositories
             _userManager = userManager;
             Books = new BookRepository(_context);
             Authors = new AuthorRepository(_context);
-            Users = new UserRepository(_userManager);
+            Users = new UserRepository(_userManager, _context);
         }
 
         public IBookRepository Books { get; set; }

@@ -24,7 +24,7 @@ namespace LibraryApp.UseCases.Books
             if (!user.IsInRole("Admin"))
                 throw new ForbiddenException("У вас нет доступа к этому ресурсу.");
 
-            var book = await _bookRepository.GetByIdAsync(request.Id)
+            var book = await _bookRepository.GetBookByIdAsync(request.Id)
                 ?? throw new NotFoundException("Книга не найдена.");
 
             _bookRepository.Delete(book);
